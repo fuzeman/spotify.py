@@ -131,10 +131,10 @@ class Spotify(Component, Emitter):
 
     # Messaging
     def send(self, name, *args):
-        return self.connection.request(name, *args)
+        return self._connection.send(name, *args)
 
     def send_message(self, message):
-        self.connection.send(message)
+        self._connection.send_message(message)
 
     # Metadata
     def metadata(self, uris):

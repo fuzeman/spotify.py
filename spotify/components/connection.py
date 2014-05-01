@@ -80,7 +80,7 @@ class Connection(Component, Emitter):
         if self.connected:
             self.disconnect()
 
-    def request(self, name, *args):
+    def send(self, name, *args):
         # Create new request
         request = Request(name, self.seq, args)
 
@@ -88,11 +88,11 @@ class Connection(Component, Emitter):
         self.requests[self.seq] = request
         self.seq += 1
 
-        self.send(request.build())
+        self.send_message(request.build())
 
         return request
 
-    def send(self, message):
+    def send_message(self, message):
         log.debug('send %s' % message)
 
         encoded = json.dumps(message, separators=(',', ':'))
@@ -106,7 +106,7 @@ class Connection(Component, Emitter):
         args = self.sp.config['credentials'][0].split(':', 2)
         args[2] = args[2].decode('string_escape')
 
-        self.request('connect', *args)\
+        self.send('connect', *args)\
             .on('success', self.on_connect)
         # TODO .pipe('error', self)
 
