@@ -21,12 +21,12 @@ class Spotify(Component, Emitter):
         self.create_session(user_agent)
 
         # Construct modules
-        self.connection = Connection(self)\
-            .on('connect', self.on_connect)\
+        self._connection = Connection(self)\
+            .pipe(['error', 'connect'], self)\
             .on('command', self.on_command)
 
-        self.authentication = Authentication(self)\
-            .on('error', lambda: self.emit('error'))\
+        self._authentication = Authentication(self)\
+            .pipe(['error'], self)\
             .on('authenticated', self.on_authenticated)
 
         self.command_handlers = {
@@ -55,10 +55,12 @@ class Spotify(Component, Emitter):
 
     # Authentication
     def login(self, username=None, password=None):
-        return self.authentication.login(username, password)
+        self._authentication.login(username, password)
+        return self.on('login')
 
     def login_facebook(self, uid, token):
-        return self.authentication.login_facebook(uid, token)
+        self._authentication.login_facebook(uid, token)
+        return self.on('login')
 
     def on_authenticated(self, config):
         self.config = config
@@ -102,11 +104,7 @@ class Spotify(Component, Emitter):
         url = 'wss://%s/' % data['ap_list'][0]
         log.debug('Selected AP at "%s"', url)
 
-        self.connection.connect(url)
-
-    # TODO pipe
-    def on_connect(self):
-        self.emit('connect')
+        self._connection.connect(url)
 
     def on_command(self, name, *args):
         if name in self.command_handlers:
