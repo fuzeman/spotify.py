@@ -56,14 +56,10 @@ class ProtobufRequest(Request):
         return request, payload
 
     def process(self, data):
-        print 'process', data
-
         result = data['result']
 
         header = MercuryRequest()
         header.ParseFromString(base64.b64decode(result[0]))
-
-        print header
 
         if 400 < header.status_code < 600:
             message = httplib.responses[header.status_code] or 'Unknown Error'
