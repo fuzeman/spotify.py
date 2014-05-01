@@ -7,6 +7,7 @@ from spotify.commands.ping_flash2 import PingFlash2
 from spotify.components.authentication import Authentication
 from spotify.components.base import Component
 from spotify.components.connection import Connection
+from spotify.components.metadata import Metadata
 from spotify.objects.user import User
 
 
@@ -28,6 +29,8 @@ class Spotify(Component, Emitter):
         self._authentication = Authentication(self)\
             .pipe(['error'], self)\
             .on('authenticated', self.on_authenticated)
+
+        self._metadata = Metadata(self)
 
         self.command_handlers = {
             'do_work': DoWork(self),
@@ -136,9 +139,4 @@ class Spotify(Component, Emitter):
 
     # Metadata
     def metadata(self, uris):
-        log.debug('metadata(%s)', uris)
-
-        if type(uris) is not list:
-            uris = [uris]
-
-
+        return self._metadata.get(uris)
