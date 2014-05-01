@@ -5,10 +5,8 @@ log = logging.getLogger(__name__)
 
 
 class Request(Emitter):
-    def __init__(self, name, id, args):
+    def __init__(self, name, args):
         self.name = name
-        self.id = id
-
         self.args = args
 
     def process(self, data):
@@ -22,9 +20,9 @@ class Request(Emitter):
         log.error('%s: %s' % (error, data))
         return self.emit('error', error)
 
-    def build(self):
+    def build(self, seq):
         return {
             'name': self.name,
-            'id': str(self.id),
+            'id': str(seq),
             'args': self.args
         }

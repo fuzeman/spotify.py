@@ -1,7 +1,3 @@
-import logging
-
-from pyemitter import Emitter
-
 from spotify.commands.do_work import DoWork
 from spotify.commands.ping_flash2 import PingFlash2
 from spotify.components.authentication import Authentication
@@ -9,6 +5,9 @@ from spotify.components.base import Component
 from spotify.components.connection import Connection
 from spotify.components.metadata import Metadata
 from spotify.objects.user import User
+
+from pyemitter import Emitter
+import logging
 
 
 log = logging.getLogger(__name__)
@@ -134,9 +133,12 @@ class Spotify(Component, Emitter):
     def send(self, name, *args):
         return self._connection.send(name, *args)
 
+    def send_request(self, request):
+        return self._connection.send_request(request)
+
     def send_message(self, message):
         self._connection.send_message(message)
 
     # Metadata
-    def metadata(self, uris):
-        return self._metadata.get(uris)
+    def metadata(self, uris, callback=None):
+        return self._metadata.get(uris, callback)

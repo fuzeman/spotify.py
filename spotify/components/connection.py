@@ -81,14 +81,18 @@ class Connection(Component, Emitter):
             self.disconnect()
 
     def send(self, name, *args):
-        # Create new request
-        request = Request(name, self.seq, args)
+        return self.send_request(Request(name, args))
+
+    def send_request(self, request):
+        # Build message
+        message = request.build(self.seq)
 
         # Store request (to trigger callback on response)
         self.requests[self.seq] = request
         self.seq += 1
 
-        self.send_message(request.build())
+        # Build and send request
+        self.send_message(message)
 
         return request
 

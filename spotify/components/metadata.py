@@ -1,4 +1,7 @@
 from spotify.components.base import Component
+from spotify.core.protobuf_request import ProtobufRequest
+from spotify.core.uri import Uri
+from spotify.objects import Album, Track, Artist
 
 import logging
 
@@ -9,7 +12,7 @@ class Metadata(Component):
     def __init__(self, sp):
         super(Metadata, self).__init__(sp)
 
-    def get(self, uris):
+    def get(self, uris, callback=None):
         log.debug('metadata(%s)', uris)
 
         if type(uris) is not list:
@@ -20,41 +23,31 @@ class Metadata(Component):
         h_type = ''
 
         for uri in uris:
-            uri_type = self.uri.type(uri)
+            uri = Uri.from_uri(uri)
 
-            if uri_type == 'local':
+            if uri.type == 'local':
                 log.debug('ignoring "local" track URI: %s', uri)
                 continue
 
-            uri_id = self.uri.id(uri)
-
-            h_type = type
+            h_type = uri.type
 
             requests.append({
                 'method': 'GET',
-                'uri': 'hm://metadata/%s/%s' % (uri_type, uri_id)
+                'uri': 'hm://metadata/%s/%s' % (uri.type, uri.to_id())
             })
 
-        header = {
+        # Build ProtoRequest
+        request = ProtobufRequest('sp/hm_b64', requests, {
+            'vnd.spotify/metadata-artist': Artist,
+            'vnd.spotify/metadata-album': Album,
+            'vnd.spotify/metadata-track': Track
+        }, {
             'method': 'GET',
             'uri': 'hm://metadata/%ss' % h_type
-        }
-
-        multi_get = True
-
-        if len(requests) == 1:
-            header = requests[0]
-            requests = None
-            multi_get = False
-
-        self.send_protobuf({
-            'header': header,
-            'payload': requests,
-            'is_multi_get': multi_get,
-            'response_schema': {
-                'vnd.spotify/metadata-artist': Artist,
-                'vnd.spotify/metadata-album': Album,
-                'vnd.spotify/metadata-track': Track
-            }
         })
 
+        # Send request
+        self.send_request(request)
+
+        # Bind with callback
+        return request.on('success', callback)

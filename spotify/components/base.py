@@ -24,5 +24,8 @@ class Component(object):
     def send(self, name, *args):
         return self.sp.send(name, *args)
 
+    def send_request(self, request):
+        return self.sp.send_request(request)
+
     def send_message(self, message):
         self.sp.send(message)
