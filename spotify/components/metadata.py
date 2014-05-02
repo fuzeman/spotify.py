@@ -49,5 +49,8 @@ class Metadata(Component):
         # Send request
         self.send_request(request)
 
-        # Bind with callback
-        return request.on('success', callback)
+        # Bind callback (if one exists)
+        if callback:
+            request.on('success', callback)
+
+        return request

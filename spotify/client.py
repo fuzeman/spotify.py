@@ -56,13 +56,13 @@ class Spotify(Component, Emitter):
         return self.user_info.get('catalogue')
 
     # Authentication
-    def login(self, username=None, password=None):
+    def login(self, username=None, password=None, callback=None):
         self._authentication.login(username, password)
-        return self.on('login')
+        return self.on('login', callback)
 
-    def login_facebook(self, uid, token):
+    def login_facebook(self, uid, token, callback=None):
         self._authentication.login_facebook(uid, token)
-        return self.on('login')
+        return self.on('login', callback)
 
     def on_authenticated(self, config):
         self.config = config

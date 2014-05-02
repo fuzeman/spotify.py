@@ -1,0 +1,81 @@
+<html>
+    <head>
+        <style type="text/css">
+            #playlist,audio{
+                background:#666;
+
+                width:400px;
+                padding:20px;
+            }
+
+            .active a{
+                color:#5DB0E6;
+                text-decoration:none;
+            }
+
+            #playlist {
+                list-style-type: none;
+            }
+
+            li a{
+                color:#eeeedd;
+                background:#333;
+
+                padding:5px;
+                display:block;
+            }
+
+            li a:hover{
+                text-decoration:none;
+            }
+        </style>
+    </head>
+    <body>
+        <audio id="audio" preload="auto" autoplay="false" tabindex="0" controls="">
+        </audio>
+
+        <ul id="playlist">
+            {% for track in tracks %}
+                <li><a href="/track/{{ track.uri }}.mp3">{{track.name}}</a></li>
+            {% endfor %}
+        </ul>
+
+        <script type="text/javascript" src="https://code.jquery.com/jquery-1.11.0.min.js"></script>
+        <script type="text/javascript">
+            var $playlist = $('#playlist'),
+                player = $('#audio')[0],
+                current = 0;
+
+            player.addEventListener('ended', function(ev) {
+                current++;
+
+                if(current == $('li', $playlist).length) {
+                    current = 0;
+                }
+
+                play($('li a', $playlist)[current]);
+            });
+
+            $('a', $playlist).click(function(ev) {
+                ev.preventDefault();
+                play($(this));
+            });
+
+            function play(item) {
+                current = $(item).parent().index();
+
+                console.log('playing ' + item.attr('href'));
+                player.src = item.attr('href');
+
+                item.parent().addClass('active')
+                             .siblings().removeClass('active');
+
+                player.load();
+                player.play();
+            }
+
+            // Start playing first item
+            play($('li a', $playlist).first());
+        </script>
+    </body>
+</html>
