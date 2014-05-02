@@ -118,7 +118,8 @@ class Spotify(Component, Emitter):
         return self.emit('error', 'Unhandled command with name "%s"' % name)
 
     def on_login_complete(self):
-        self.send('sp/log', [41, 1, 0, 0, 0, 0])
+        self.send('sp/log', 41, 1, 1656, 951, 0, 0)
+        self.send('sp/log', 41, 1, 1656, 951, 0, 0)
 
         self.send('sp/user_info')\
             .on('success', self.on_user_info)
