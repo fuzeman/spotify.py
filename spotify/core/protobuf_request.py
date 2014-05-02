@@ -56,6 +56,7 @@ class ProtobufRequest(Request):
         return request, payload
 
     def process(self, data):
+        log.debug('process data: %s', repr(data))
         result = data['result']
 
         header = MercuryRequest()

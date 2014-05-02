@@ -5,9 +5,20 @@ from spotify.proto import metadata_pb2
 class Album(Metadata):
     __protobuf__ = metadata_pb2.Album
 
+    gid = PropertyProxy
     name = PropertyProxy
-
+    artists = PropertyProxy('artist', 'Artist')
+    type = PropertyProxy
+    label = PropertyProxy
+    date = PropertyProxy(func=PropertyProxy.parse_date)
+    popularity = PropertyProxy
     genres = PropertyProxy('genre')
-
-    def __init__(self, internal):
-        super(Album, self).__init__(internal)
+    covers = PropertyProxy('cover', 'Image')
+    external_ids = PropertyProxy('external_id', 'ExternalId')
+    discs = PropertyProxy('disc', 'Disc')
+    # review - []
+    copyrights = PropertyProxy('copyright', 'Copyright')
+    restrictions = PropertyProxy('restriction', 'Restriction')
+    # related - []
+    # sale_period - []
+    cover_group = PropertyProxy('cover_group', 'ImageGroup')
