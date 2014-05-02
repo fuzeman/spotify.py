@@ -1,3 +1,5 @@
+import binascii
+
 base62 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 
@@ -19,6 +21,31 @@ class Uri(object):
 
     def __str__(self):
         return 'spotify:%s:%s' % (self.type, self.code)
+
+    def __repr__(self):
+        return '<Uri %s>' % (self.__str__())
+
+    @classmethod
+    def from_id(cls, type, id):
+        if not id:
+            return None
+
+        res = []
+        v = int(id, 16)
+
+        while v > 0:
+            res = [v % 62] + res
+            v /= 62
+
+        code = ''.join([base62[i] for i in res])
+
+        return cls(type, code.rjust(22, '0'))
+
+    @classmethod
+    def from_gid(cls, type, gid):
+        id = binascii.hexlify(gid).rjust(32, '0')
+
+        return cls.from_id(type, id)
 
     @classmethod
     def from_uri(cls, uri):

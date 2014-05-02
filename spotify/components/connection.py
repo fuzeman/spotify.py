@@ -97,9 +97,8 @@ class Connection(Component, Emitter):
         return request
 
     def send_message(self, message):
-        log.debug('send %s' % message)
-
         encoded = json.dumps(message, separators=(',', ':'))
+        log.debug('send encoded: %s' % repr(encoded))
 
         with self.send_lock:
             self.client.send(encoded)

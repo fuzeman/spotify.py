@@ -1,5 +1,7 @@
 from spotify.core.request import Request
-from spotify.proto.mercury_pb2 import MercuryRequest, MercuryReply
+from spotify.objects import MAP
+from spotify.proto.mercury_pb2 import MercuryRequest
+
 import base64
 import httplib
 import logging
@@ -8,8 +10,9 @@ log = logging.getLogger(__name__)
 
 
 class ProtobufRequest(Request):
-    def __init__(self, name, requests, schema_response, header=None, schema_payload=None):
+    def __init__(self, sp, name, requests, schema_response, header=None, schema_payload=None):
         super(ProtobufRequest, self).__init__(name, None)
+        self.sp = sp
 
         self.schema_response = schema_response
         self.schema_payload = schema_payload
@@ -90,7 +93,7 @@ class ProtobufRequest(Request):
                 self.emit('error', 'Unrecognized metadata type: "%s"' % content_type)
                 return
 
-            self.emit('success', parser_cls.parse(data))
+            self.emit('success', parser_cls.parse(self.sp, data, MAP))
 
     def build(self, seq):
         self.args = [

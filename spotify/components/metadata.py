@@ -37,7 +37,7 @@ class Metadata(Component):
             })
 
         # Build ProtoRequest
-        request = ProtobufRequest('sp/hm_b64', requests, {
+        request = ProtobufRequest(self.sp, 'sp/hm_b64', requests, {
             'vnd.spotify/metadata-artist': Artist,
             'vnd.spotify/metadata-album': Album,
             'vnd.spotify/metadata-track': Track

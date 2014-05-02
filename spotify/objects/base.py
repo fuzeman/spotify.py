@@ -1,3 +1,5 @@
+from spotify.components.base import Component
+
 from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
 import datetime
 
@@ -8,17 +10,17 @@ class PropertyProxy(object):
         self.type = type_
         self.func = func
 
-    def get(self, obj, type_map):
-        if self.name in obj._cache:
-            return obj._cache[self.name]
+    def get(self, key, obj, type_map):
+        if key in obj._cache:
+            return obj._cache[key]
 
         value = getattr(obj._internal, self.name, None)
-        value = self.parse(value, type_map)
+        value = self.parse(obj, value, type_map)
 
-        obj._cache[self.name] = value
+        obj._cache[key] = value
         return value
 
-    def parse(self, value, type_map):
+    def parse(self, obj, value, type_map):
         # Retrieve 'type' from type_map
         if type(self.type) is str:
             if self.type not in type_map:
@@ -35,9 +37,9 @@ class PropertyProxy(object):
 
         # Convert to 'type'
         if isinstance(value, (list, RepeatedCompositeFieldContainer)):
-            return [self.type(x, type_map) for x in value]
+            return [self.type(obj.sp, x, type_map) for x in value]
 
-        return self.type(value, type_map)
+        return self.type(obj.sp, value, type_map)
 
     @staticmethod
     def parse_date(value):
@@ -47,10 +49,12 @@ class PropertyProxy(object):
             return None
 
 
-class Metadata(object):
+class Metadata(Component):
     __protobuf__ = None
 
-    def __init__(self, internal, type_map):
+    def __init__(self, sp, internal, type_map):
+        super(Metadata, self).__init__(sp)
+
         self._internal = internal
 
         self._proxies = self._find_proxies()
@@ -87,7 +91,7 @@ class Metadata(object):
             proxy = proxies.get(name)
 
             if isinstance(proxy, PropertyProxy):
-                return proxy.get(self, self._type_map)
+                return proxy.get(name, self, self._type_map)
 
         return super(Metadata, self).__getattribute__(name)
 
@@ -106,8 +110,8 @@ class Metadata(object):
         return self.__repr__()
 
     @classmethod
-    def parse(cls, data, type_map):
+    def parse(cls, sp, data, type_map):
         internal = cls.__protobuf__()
         internal.ParseFromString(data)
 
-        return cls(internal, type_map)
+        return cls(sp, internal, type_map)

@@ -1,3 +1,4 @@
+from spotify.core.uri import Uri
 from spotify.objects.base import Metadata, PropertyProxy
 from spotify.proto import metadata_pb2
 
@@ -6,6 +7,7 @@ class Artist(Metadata):
     __protobuf__ = metadata_pb2.Artist
 
     gid = PropertyProxy
+    uri = PropertyProxy('gid', func=lambda gid: Uri.from_gid('artist', gid))
     name = PropertyProxy
 
     popularity = PropertyProxy

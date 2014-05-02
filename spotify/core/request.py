@@ -24,5 +24,5 @@ class Request(Emitter):
         return {
             'name': self.name,
             'id': str(seq),
-            'args': self.args
+            'args': list(self.args)
         }
