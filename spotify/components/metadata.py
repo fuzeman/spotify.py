@@ -12,7 +12,7 @@ class Metadata(Component):
     def __init__(self, sp):
         super(Metadata, self).__init__(sp)
 
-    def get(self, uris, callback=None):
+    def get(self, uris, callback=None, async=True, timeout=None):
         log.debug('metadata(%s)', uris)
 
         if type(uris) is not list:
@@ -46,11 +46,7 @@ class Metadata(Component):
             'uri': 'hm://metadata/%ss' % h_type
         })
 
-        # Send request
-        self.send_request(request)
-
-        # Bind callback (if one exists)
-        if callback:
-            request.on('success', callback)
-
-        return request
+        return self.request_wrapper(
+            request, callback,
+            async, timeout
+        )

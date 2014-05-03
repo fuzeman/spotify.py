@@ -24,8 +24,24 @@ class Component(object):
     def send(self, name, *args):
         return self.sp.send(name, *args)
 
+    def build(self, name, *args):
+        return self.sp.build(name, *args)
+
     def send_request(self, request):
         return self.sp.send_request(request)
 
     def send_message(self, message):
         self.sp.send(message)
+
+    @staticmethod
+    def request_wrapper(request, callback=None, async=True, timeout=None):
+        if not async:
+            return request.wait(
+                timeout,
+                on_bound=lambda: request.send()
+            )
+
+        return request.on(
+            'success', callback,
+            on_bound=lambda: request.send()
+        )

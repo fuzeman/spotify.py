@@ -11,8 +11,15 @@ log = logging.getLogger(__name__)
 
 class ProtobufRequest(Request):
     def __init__(self, sp, name, requests, schema_response, header=None, schema_payload=None):
-        super(ProtobufRequest, self).__init__(name, None)
-        self.sp = sp
+        """
+        :type sp: spotify.client.Spotify
+        :type name: str
+        :type requests: list of dict
+        :type schema_response: dict or spotify.objects.base.Metadata
+
+        :type header: dict
+        """
+        super(ProtobufRequest, self).__init__(sp, name, None)
 
         self.schema_response = schema_response
         self.schema_payload = schema_payload

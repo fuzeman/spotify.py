@@ -23,6 +23,9 @@ class PropertyProxy(object):
     def parse(self, obj, value, type_map):
         # Retrieve 'type' from type_map
         if type(self.type) is str:
+            if not type_map:
+                return value
+
             if self.type not in type_map:
                 raise ValueError('Unknown type "%s"' % self.type)
 
@@ -52,7 +55,7 @@ class PropertyProxy(object):
 class Metadata(Component):
     __protobuf__ = None
 
-    def __init__(self, sp, internal, type_map):
+    def __init__(self, sp, internal=None, type_map=None):
         super(Metadata, self).__init__(sp)
 
         self._internal = internal
@@ -83,6 +86,9 @@ class Metadata(Component):
     def __getattribute__(self, name):
         if name.startswith('_'):
             return super(Metadata, self).__getattribute__(name)
+
+        if name in self.__dict__:
+            return self.__dict__[name]
 
         # Check for property proxy
         proxies = getattr(self, '_proxies', None)
@@ -115,3 +121,12 @@ class Metadata(Component):
         internal.ParseFromString(data)
 
         return cls(sp, internal, type_map)
+
+    @classmethod
+    def construct(cls, sp, **kwargs):
+        obj = cls(sp)
+
+        for key, value in kwargs.items():
+            setattr(obj, key, value)
+
+        return obj

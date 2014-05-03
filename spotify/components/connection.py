@@ -81,7 +81,11 @@ class Connection(Component, Emitter):
             self.disconnect()
 
     def send(self, name, *args):
-        return self.send_request(Request(name, args))
+        return self.build(name, *args)\
+                   .send()
+
+    def build(self, name, *args):
+        return Request(self.sp, name, args)
 
     def send_request(self, request):
         # Build message
@@ -109,8 +113,9 @@ class Connection(Component, Emitter):
         args = self.sp.config['credentials'][0].split(':', 2)
         args[2] = args[2].decode('string_escape')
 
-        self.send('connect', *args)\
-            .on('success', self.on_connect)
+        self.build('connect', *args)\
+            .on('success', self.on_connect)\
+            .send()
         # TODO .pipe('error', self)
 
     def on_connect(self, message):
