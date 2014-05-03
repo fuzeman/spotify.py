@@ -18,7 +18,7 @@ if __name__ == '__main__':
             def on_track_uri(res):
                 print res
 
-            track.track_uri().on('success', on_track_uri)
+            track.track_uri(on_track_uri)
 
     @sp.login(os.environ['USERNAME'], os.environ['PASSWORD'])
     def on_login():
