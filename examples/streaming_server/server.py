@@ -89,8 +89,6 @@ class Server(object):
             chunk_scale = 0
             chunk_size = chunk_size_min
 
-            last_progress = None
-
             while True:
                 # Adjust chunk_size
                 if chunk_scale < 1:
@@ -101,9 +99,8 @@ class Server(object):
                         chunk_scale = 1
 
                 # Read chunk
-                log.debug('{%s] read - position: %s, chunk_size: %s' % (tr.uri, position, chunk_size))
+                log.debug('[%s] read - position: %s, chunk_size: %s' % (tr.uri, position, chunk_size))
                 chunk = tr.read(position, chunk_size)
-                log.debug('[%s] finished read')
 
                 if not chunk:
                     log.debug('[%s] Finished at %s bytes (content-length: %s)' % (tr.uri, position, tr.length))
@@ -114,28 +111,9 @@ class Server(object):
                 # Write chunk
                 yield chunk
 
-                last_progress = self.update_progress(tr, position, last_progress)
-
         return stream()
 
     track._cp_config = {'response.stream': True}
-
-    @staticmethod
-    def update_progress(tr, position, last_progress):
-        percent = float(position) / tr.length
-        value = int(percent * 20)
-
-        if value == last_progress:
-            return value
-
-        log.debug('[%s] Downloading [%s|%s] %03d%%' % (
-            tr.uri,
-            (' ' * value),
-            (' ' * (20 - value)),
-            int(percent * 100)
-        ))
-
-        return value
 
     def get_track_url(self, uri):
         return "http://%s:%d/track/%s.mp3" % (
