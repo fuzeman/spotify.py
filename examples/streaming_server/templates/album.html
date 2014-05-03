@@ -62,7 +62,9 @@
             });
 
             function play(item) {
-                current = $(item).parent().index();
+                item = $(item);
+
+                current = item.parent().index();
 
                 console.log('playing ' + item.attr('href'));
                 player.src = item.attr('href');
