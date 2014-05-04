@@ -43,23 +43,33 @@ class Server(object):
         cherrypy.engine.start()
 
     def album(self, uri):
-        self.on_login.wait() # Wait for login
+        self.on_login.wait()  # Wait for login
 
-        album = self.sp.metadata(uri, async=False)
+        complete = Event()
+        album_tracks = []
 
-        track_uris = [str(tr.uri) for tr in album.discs[0].tracks]
+        # Fetch album metadata
+        @self.sp.metadata(uri)
+        def on_album(album):
 
-        # TODO multi-get
-        tracks = [self.sp.metadata(track_uri, async=False) for track_uri in track_uris]
+            # Fetch metadata for each track
+            @self.sp.metadata([tr.uri for tr in album.discs[0].tracks])
+            def on_tracks(tracks):
 
-        for x, track in enumerate(tracks):
-            print 'discs[0].tracks[%s].name: %s' % (x, track.name)
+                # Append onto 'tracks' list
+                album_tracks.extend(tracks)
+
+                # Work complete
+                complete.set()
+
+        # Wait until tracks are loaded (give up after 5 seconds)
+        complete.wait(5)
 
         # Render template
         return env.get_template('album.html').render(
             tracks=[
                 {'name': track.name, 'uri': str(track.uri)}
-                for track in tracks
+                for track in album_tracks
             ]
         )
 

@@ -34,13 +34,7 @@ class Component(object):
         self.sp.send(message)
 
     @staticmethod
-    def request_wrapper(request, callback=None, async=True, timeout=None):
-        if not async:
-            return request.wait(
-                timeout,
-                on_bound=lambda: request.send()
-            )
-
+    def request_wrapper(request, callback=None):
         return request.on(
             'success', callback,
             on_bound=lambda: request.send()

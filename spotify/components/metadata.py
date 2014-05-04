@@ -12,7 +12,7 @@ class Metadata(Component):
     def __init__(self, sp):
         super(Metadata, self).__init__(sp)
 
-    def get(self, uris, callback=None, async=True, timeout=None):
+    def get(self, uris, callback=None):
         log.debug('metadata(%s)', uris)
 
         if type(uris) is not list:
@@ -23,7 +23,8 @@ class Metadata(Component):
         h_type = ''
 
         for uri in uris:
-            uri = Uri.from_uri(uri)
+            if type(uri) is not Uri:
+                uri = Uri.from_uri(uri)
 
             if uri.type == 'local':
                 log.debug('ignoring "local" track URI: %s', uri)
@@ -46,7 +47,4 @@ class Metadata(Component):
             'uri': 'hm://metadata/%ss' % h_type
         })
 
-        return self.request_wrapper(
-            request, callback,
-            async, timeout
-        )
+        return self.request_wrapper(request, callback)

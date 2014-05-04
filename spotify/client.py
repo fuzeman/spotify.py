@@ -144,5 +144,5 @@ class Spotify(Component, Emitter):
         self._connection.send_message(message)
 
     # Metadata
-    def metadata(self, uris, callback=None, async=True, timeout=None):
-        return self._metadata.get(uris, callback, async, timeout)
+    def metadata(self, uris, callback=None):
+        return self._metadata.get(uris, callback)

@@ -40,10 +40,7 @@ class Track(Metadata):
         """
         request = self.build('sp/track_uri', 'mp3160', self.uri.to_id())
 
-        return self.request_wrapper(
-            request, callback,
-            async, timeout
-        )
+        return self.request_wrapper(request, callback)
 
     def track_event(self, lid, event, time):
         """Send the "sp/track_event" event.

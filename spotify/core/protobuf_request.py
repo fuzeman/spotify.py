@@ -1,6 +1,6 @@
 from spotify.core.request import Request
 from spotify.objects import MAP
-from spotify.proto.mercury_pb2 import MercuryRequest
+from spotify.proto.mercury_pb2 import MercuryRequest, MercuryMultiGetRequest, MercuryMultiGetReply
 
 import base64
 import httplib
@@ -39,7 +39,7 @@ class ProtobufRequest(Request):
             if header is None:
                 raise ValueError('A header is required to send multiple requests')
 
-            header['contentType'] = 'vnd.spotify/mercury-mget-request'
+            header['content_type'] = 'vnd.spotify/mercury-mget-request'
 
             request, payload = self.prepare_multi(header, requests)
         else:
@@ -61,7 +61,11 @@ class ProtobufRequest(Request):
 
     def prepare_multi(self, header, requests):
         request = self.prepare_single(header)
-        payload = [self.prepare_single(r) for r in requests]
+
+        payload = MercuryMultiGetRequest()
+
+        for r in requests:
+            payload.request.extend([self.prepare_single(r)])
 
         return request, payload
 
@@ -84,23 +88,39 @@ class ProtobufRequest(Request):
 
         if self.payload and header.content_type != 'vnd.spotify/mercury-mget-reply':
             self.emit('error', 'Server Error: Server didn\'t send a multi-GET reply for a multi-GET request!')
+            return
 
         self.parse(header.content_type, base64.b64decode(result[1]))
 
     def parse(self, content_type, data):
+        if content_type == 'vnd.spotify/mercury-mget-reply':
+            response = MercuryMultiGetReply()
+            response.ParseFromString(data)
+
+            items = []
+
+            for item in response.reply:
+                if item.status_code != 200:
+                    items.append(None)
+                    continue
+
+                items.append(self.parse_item(item.content_type, item.body))
+
+            self.emit('success', items)
+        else:
+            self.emit('success', self.parse_item(content_type, data))
+
+    def parse_item(self, content_type, data):
         parser_cls = self.schema_response
 
-        if content_type == 'vnd.spotify/mercury-mget-reply':
-            raise NotImplementedError()
-        else:
-            if type(parser_cls) is dict:
-                parser_cls = parser_cls.get(content_type)
+        if type(parser_cls) is dict:
+            parser_cls = parser_cls.get(content_type)
 
-            if parser_cls is None:
-                self.emit('error', 'Unrecognized metadata type: "%s"' % content_type)
-                return
+        if parser_cls is None:
+            self.emit('error', 'Unrecognized metadata type: "%s"' % content_type)
+            return
 
-            self.emit('success', parser_cls.parse(self.sp, data, MAP))
+        return parser_cls.parse(self.sp, data, MAP)
 
     def build(self, seq):
         self.args = [
