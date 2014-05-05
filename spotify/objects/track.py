@@ -63,6 +63,8 @@ class Track(Metadata):
         # Update our object with new attributes
         self.update(alternative, 'gid', 'restrictions', 'files')
 
+        log.debug('Found alternative track "%s"', self.uri)
+
         return True
 
     def track_uri(self, callback=None):

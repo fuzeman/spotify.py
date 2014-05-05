@@ -117,17 +117,6 @@ class Metadata(Component):
 
         return super(Metadata, self).__getattribute__(name)
 
-    def __repr__(self):
-        return '<%s.%s %s>' % (
-            self.__class__.__module__,
-            self.__class__.__name__,
-
-            ', '.join([
-                ('%s: %s' % (k, repr(getattr(self, k))))
-                for k in self._proxies
-            ])
-        )
-
     def __str__(self):
         return self.__repr__()
 

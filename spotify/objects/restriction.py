@@ -15,6 +15,9 @@ CATALOGUE_MAP = {
 
 
 def split_countries(value):
+    if value is None:
+        return None
+
     return [value[i:i+2] for i in range(0, len(value), 2)]
 
 
