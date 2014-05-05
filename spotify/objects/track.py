@@ -3,6 +3,10 @@ from spotify.core.uri import Uri
 from spotify.objects.base import Metadata, PropertyProxy
 from spotify.proto import metadata_pb2
 
+import logging
+
+log = logging.getLogger(__name__)
+
 
 class Track(Metadata):
     __protobuf__ = metadata_pb2.Track
@@ -28,7 +32,40 @@ class Track(Metadata):
     # sale_period - []
     preview = PropertyProxy
 
-    def track_uri(self, callback=None, async=True, timeout=None):
+    def is_available(self):
+        message = ''
+
+        for restriction in self.restrictions:
+            success, message = restriction.check()
+
+            if success:
+                return True
+
+        log.debug('Track "%s" not available (%s)', self.uri, message)
+        return False
+
+    def find_alternative(self):
+        if not self.alternatives:
+            log.debug('No alternatives available for "%s"', self.uri)
+            return False
+
+        alternative = None
+
+        # Try find an available alternative
+        for alternative in self.alternatives:
+            if alternative.is_available():
+                break
+
+        if alternative is None:
+            log.debug('Unable to find alternative for "%s"', self.uri)
+            return False
+
+        # Update our object with new attributes
+        self.update(alternative, 'gid', 'restrictions', 'files')
+
+        return True
+
+    def track_uri(self, callback=None):
         """Requests the track stream URI.
 
         :param callback: Callback to trigger on a successful response
@@ -58,6 +95,16 @@ class Track(Metadata):
 
     def track_progress(self, lid, position, source='unknown', reason='unknown', latency=150,
                        context='unknown', referrer=None):
+        """
+        :type lid: str
+        :type position: int
+        :type source: str
+        :type reason: str
+        :type latency: int
+        :type context: str
+        :type referrer: dict {'referrer', 'version', 'vendor'}
+        :return:
+        """
 
         referrer = set_defaults(referrer, {
             'referrer': 'unknown',
@@ -89,6 +136,17 @@ class Track(Metadata):
 
     def track_end(self, lid, position, seeks=None, latency=150, context='unknown',
                   source=None, reason=None, referrer=None):
+        """
+        :type lid: str
+        :type position: int
+        :type seeks: dict {'num_forward', 'num_backward', 'ms_forward', 'ms_backward'}
+        :type latency: int
+        :type context: str
+        :type source: dict {'start', 'end'}
+        :type reason: dict {'start', 'end'}
+        :type referrer: dict {'referrer', 'version', 'vendor'}
+        :return:
+        """
 
         seeks = set_defaults(seeks, {
             'num_forward': 0,

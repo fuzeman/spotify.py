@@ -14,10 +14,18 @@ class PropertyProxy(object):
         if key in obj._cache:
             return obj._cache[key]
 
-        value = getattr(obj._internal, self.name, None)
-        value = self.parse(obj, value, type_map)
+        # Pull value from instance or protobuf
+        original = (
+            obj.__dict__.get(self.name) or
+            getattr(obj._internal, self.name, None)
+        )
 
+        # Transform attribute values
+        value = self.parse(obj, original, type_map)
+
+        # Cache for later use
         obj._cache[key] = value
+
         return value
 
     def parse(self, obj, value, type_map):
@@ -63,6 +71,14 @@ class Metadata(Component):
         self._proxies = self._find_proxies()
         self._type_map = type_map
         self._cache = {}
+
+    def update(self, obj, *args):
+        # Clear cache to ensure we don't use previous values
+        self._cache = {}
+
+        # Update 'self' with values from 'obj'
+        for key in args:
+            setattr(self, key, getattr(obj, key))
 
     def _find_proxies(self):
         proxies = {}

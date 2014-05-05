@@ -2,10 +2,14 @@ from spotify.client import Spotify
 
 import logging
 import os
-import time
+
+log = logging.getLogger(__name__)
 
 
 class App(object):
+    #album_uri = 'spotify:album:7u6zL7kqpgLPISZYXNTgYk'  # Alive 2007
+    album_uri = 'spotify:album:1x4SGGPflZamzny9QXRsdi'  # Tourist History
+
     def __init__(self):
         self.sp = Spotify()
 
@@ -16,7 +20,7 @@ class App(object):
         @self.sp.login(os.environ['USERNAME'], os.environ['PASSWORD'])
         def on_login():
             # Fetch metadata for album
-            self.sp.metadata('spotify:album:7u6zL7kqpgLPISZYXNTgYk', self.on_album)
+            self.sp.metadata(self.album_uri, self.on_album)
 
     def on_album(self, album):
         self.album = album
@@ -27,10 +31,18 @@ class App(object):
     def on_tracks(self, tracks):
         self.tracks = tracks
 
-        print '%s - %s' % (self.album.name, ', '.join([artist.name for artist in self.album.artists]))
+        log.info('%s - %s', self.album.name, ', '.join([artist.name for artist in self.album.artists]))
 
         for track in self.tracks:
-            print '\t[%02d] %s' % (track.number, track.name)
+            #if str(track.uri) == "spotify:track:2raTFyBL7ETtUbcKOtSLDN":
+            #    print track._internal
+            #    break
+
+            if not track.is_available():
+                track.find_alternative()
+
+            log.info('\t[%02d] (%s) %s', track.number, track.uri, track.name)
+            log.info('\t\tis_available: %s', track.is_available())
 
 
 if __name__ == '__main__':
