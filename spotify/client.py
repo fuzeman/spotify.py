@@ -45,7 +45,7 @@ class Spotify(Component, Emitter):
     # User
     @property
     def username(self):
-        return self.user_info.get('username')
+        return self.user_info.get('user')
 
     @property
     def country(self):
@@ -146,3 +146,9 @@ class Spotify(Component, Emitter):
     # Metadata
     def metadata(self, uris, callback=None):
         return self._metadata.get(uris, callback)
+
+    def playlist(self, uri, start=0, count=100, callback=None):
+        return self._metadata.playlist(uri, start, count, callback)
+
+    def playlists(self, username, start=0, count=100, callback=None):
+        return self._metadata.playlists(username, start, count, callback)

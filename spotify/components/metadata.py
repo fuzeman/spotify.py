@@ -1,7 +1,7 @@
 from spotify.components.base import Component
 from spotify.core.protobuf_request import ProtobufRequest
 from spotify.core.uri import Uri
-from spotify.objects import Album, Track, Artist
+from spotify.objects import Album, Track, Artist, Playlist
 
 import logging
 
@@ -9,9 +9,6 @@ log = logging.getLogger(__name__)
 
 
 class Metadata(Component):
-    def __init__(self, sp):
-        super(Metadata, self).__init__(sp)
-
     def get(self, uris, callback=None):
         log.debug('metadata(%s)', uris)
 
@@ -46,5 +43,26 @@ class Metadata(Component):
             'method': 'GET',
             'uri': 'hm://metadata/%ss' % h_type
         })
+
+        return self.request_wrapper(request, callback)
+
+    def playlist(self, uri, start=0, count=100, callback=None):
+        parts = uri.split(':')
+
+        request = ProtobufRequest(self.sp, 'sp/hm_b64', {
+            'method': 'GET',
+            'uri': 'hm://playlist/%s?from=%s&length=%s' % ('/'.join(parts[1:]), start, count)
+        }, Playlist)
+
+        return self.request_wrapper(request, callback)
+
+    def playlists(self, username, start=0, count=100, callback=None):
+        if count > 100:
+            raise ValueError("You may only request up to 100 playlists at once")
+
+        request = ProtobufRequest(self.sp, 'sp/hm_b64', {
+            'method': 'GET',
+            'uri': 'hm://playlist/user/%s/rootlist?from=%s&length=%s' % (username, start, count)
+        }, Playlist)
 
         return self.request_wrapper(request, callback)

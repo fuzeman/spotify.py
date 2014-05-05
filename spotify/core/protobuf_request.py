@@ -15,7 +15,7 @@ class ProtobufRequest(Request):
         :type sp: spotify.client.Spotify
         :type name: str
         :type requests: list of dict
-        :type schema_response: dict or spotify.objects.base.Metadata
+        :type schema_response: dict or spotify.objects.base.Descriptor
 
         :type header: dict
         """
@@ -30,6 +30,9 @@ class ProtobufRequest(Request):
         self.prepare(requests, header)
 
     def prepare(self, requests, header=None):
+        if type(requests) is not list:
+            requests = [requests]
+
         request = None
         payload = None
 
@@ -76,7 +79,7 @@ class ProtobufRequest(Request):
         header = MercuryRequest()
         header.ParseFromString(base64.b64decode(result[0]))
 
-        if 400 < header.status_code < 600:
+        if 400 <= header.status_code < 600:
             message = httplib.responses[header.status_code] or 'Unknown Error'
 
             if 400 <= header.status_code < 500:
