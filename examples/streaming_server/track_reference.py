@@ -2,7 +2,7 @@ from spotify.core.uri import Uri
 from spotify.objects import Track
 from util import log_progress
 
-from threading import Lock, Thread
+from threading import Lock, Thread, Event
 from urllib import urlopen
 import logging
 import time
@@ -18,49 +18,55 @@ class TrackReference(object):
         self.server = server
         self.uri = uri
 
+        self.buffer = bytearray()
+        self.metadata = None
+
+        self.on_opened = Event()
+
+        # stream info (from 'sp/track_uri')
+        self.stream_info = None
+        self.stream_length = None
+
+        # download response
         self.response = None
+        self.response_thread = None
         self.response_headers = None
 
-        self.stream_length = None
-        self.stream_info = None
-
+        # track state
         self.reading = False
+        self.reading_start = None
+
         self.playing = False
         self.finished = False
 
-        self.start_time = None
+    @property
+    def success(self):
+        return self.stream_info and 'uri' in self.stream_info
 
-        self.buffer = bytearray()
-
-        self.track = None
-        self.fetch_lock = Lock()
-        self.fetch_thread = None
-
-    def fetch(self, blocking=True):
+    def fetch(self):
         if self.response:
             log.debug('[%s] already fetched track, returning from cache' % self.uri)
             return
 
-        self.fetch_lock.acquire()
+        self.server.sp.metadata(self.uri, self.on_metadata)
 
-        # Create a "shell" track (to access uri functions)
-        self.track = Track.construct(self.server.sp, uri=Uri.from_uri(self.uri))
+    def on_metadata(self, metadata):
+        self.metadata = metadata
+
+        # Ensure track is actually available (check restrictions)
+        if not self.metadata.is_available():
+            # Try find alternative track that is available
+            if not self.metadata.find_alternative():
+                log.warn('Unable to find alternative for track "%s"', self.metadata.uri)
 
         # Request the track_uri
-        self.track.track_uri(self.on_track_uri)
-
-        if blocking:
-            # Wait until we are ready
-            self.fetch_lock.acquire()
-
-        return self.fetch_lock
+        self.metadata.track_uri(self.on_track_uri)
 
     def on_track_uri(self, response):
         self.stream_info = response.get('result')
 
-        if not self.stream_info or 'uri' not in self.stream_info:
+        if not self.success:
             log.warn('Invalid track_uri response')
-            self.fetch_lock.release()
             return
 
         self.response = urlopen(self.stream_info['uri'])
@@ -77,16 +83,10 @@ class TrackReference(object):
             log.debug(self.response.read())
         else:
             # Download track for streaming
-            self.fetch_thread = Thread(target=self.run)
-            self.fetch_thread.start()
+            self.response_thread = Thread(target=self.run)
+            self.response_thread.start()
 
-        self.fetch_lock.release()
-
-        # Request full metadata for future use
-        @self.server.sp.metadata(self.uri)
-        def on_metadata(track):
-            log.debug('received full track metadata')
-            self.track = track
+        self.on_opened.set()
 
     def run(self):
         chunk_size = 1024
@@ -110,8 +110,8 @@ class TrackReference(object):
 
     def read(self, start, chunk_size=1024):
         if not self.playing:
-            self.track.track_event(self.stream_info['lid'], 3, 0)
-            self.start_time = time.time()
+            self.metadata.track_event(self.stream_info['lid'], 3, 0)
+            self.reading_start = time.time()
             self.playing = True
 
         while self.reading and len(self.buffer) < start + 1:
@@ -125,11 +125,16 @@ class TrackReference(object):
 
         self.finished = True
 
-        position_ms = int((time.time() - self.start_time) * 1000)
+        position = 0
 
-        if position_ms > self.track.duration:
-            position_ms = self.track.duration
+        if self.reading_start:
+            position = time.time() - self.reading_start
 
-        log.debug('position_ms: %s, duration: %s', position_ms, self.track.duration)
+        position_ms = int(position * 1000)
 
-        self.track.track_end(self.stream_info['lid'], position_ms)
+        if position_ms > self.metadata.duration:
+            position_ms = self.metadata.duration
+
+        log.debug('position_ms: %s, duration: %s', position_ms, self.metadata.duration)
+
+        self.metadata.track_end(self.stream_info['lid'], position_ms)

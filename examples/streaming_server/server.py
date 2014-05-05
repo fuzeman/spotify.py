@@ -96,6 +96,14 @@ class Server(object):
         # Start download
         tr.fetch()
 
+        # Wait until track is ready
+        tr.on_opened.wait(10)
+
+        if not tr.success:
+            self.current = None
+            cherrypy.response.status = 500
+            return
+
         # Update current
         self.current = tr
 
