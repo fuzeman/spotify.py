@@ -1,6 +1,6 @@
 from spotify.core.helpers import set_defaults
 from spotify.core.uri import Uri
-from spotify.objects.base import Metadata, PropertyProxy
+from spotify.objects.base import Descriptor, PropertyProxy
 from spotify.proto import metadata_pb2
 
 import logging
@@ -8,7 +8,7 @@ import logging
 log = logging.getLogger(__name__)
 
 
-class Track(Metadata):
+class Track(Descriptor):
     __protobuf__ = metadata_pb2.Track
 
     gid = PropertyProxy

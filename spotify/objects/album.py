@@ -1,9 +1,9 @@
 from spotify.core.uri import Uri
-from spotify.objects.base import Metadata, PropertyProxy
+from spotify.objects.base import Descriptor, PropertyProxy
 from spotify.proto import metadata_pb2
 
 
-class Album(Metadata):
+class Album(Descriptor):
     __protobuf__ = metadata_pb2.Album
 
     gid = PropertyProxy

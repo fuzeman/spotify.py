@@ -10,14 +10,30 @@ class PropertyProxy(object):
         self.type = type_
         self.func = func
 
+    def get_attribute(self, instance, path):
+        if type(path) is str:
+            path = path.split('.')
+
+        key = path.pop(0)
+
+        if not hasattr(instance, key):
+            return None
+
+        value = getattr(instance, key)
+
+        if not len(path):
+            return value
+
+        return self.get_attribute(value, path)
+
     def get(self, key, obj, type_map):
         if key in obj._cache:
             return obj._cache[key]
 
         # Pull value from instance or protobuf
         original = (
-            obj.__dict__.get(self.name) or
-            getattr(obj._internal, self.name, None)
+            self.get_attribute(obj, self.name) or
+            self.get_attribute(obj._internal, self.name)
         )
 
         # Transform attribute values
@@ -60,11 +76,11 @@ class PropertyProxy(object):
             return None
 
 
-class Metadata(Component):
+class Descriptor(Component):
     __protobuf__ = None
 
     def __init__(self, sp, internal=None, type_map=None):
-        super(Metadata, self).__init__(sp)
+        super(Descriptor, self).__init__(sp)
 
         self._internal = internal
 
@@ -101,7 +117,7 @@ class Metadata(Component):
 
     def __getattribute__(self, name):
         if name.startswith('_'):
-            return super(Metadata, self).__getattribute__(name)
+            return super(Descriptor, self).__getattribute__(name)
 
         if name in self.__dict__:
             return self.__dict__[name]
@@ -115,7 +131,7 @@ class Metadata(Component):
             if isinstance(proxy, PropertyProxy):
                 return proxy.get(name, self, self._type_map)
 
-        return super(Metadata, self).__getattribute__(name)
+        return super(Descriptor, self).__getattribute__(name)
 
     def __str__(self):
         return self.__repr__()

@@ -1,4 +1,4 @@
-from spotify.objects.base import Metadata, PropertyProxy
+from spotify.objects.base import Descriptor, PropertyProxy
 from spotify.proto import metadata_pb2
 
 import logging
@@ -21,7 +21,7 @@ def split_countries(value):
     return [value[i:i+2] for i in range(0, len(value), 2)]
 
 
-class Restriction(Metadata):
+class Restriction(Descriptor):
     __protobuf__ = metadata_pb2.Restriction
 
     catalogues = PropertyProxy('catalogue')
