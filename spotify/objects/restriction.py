@@ -23,6 +23,7 @@ def split_countries(value):
 
 class Restriction(Descriptor):
     __protobuf__ = metadata_pb2.Restriction
+    __node__ = 'restriction'
 
     catalogues = PropertyProxy('catalogue')
     countries_allowed = PropertyProxy(func=split_countries)
@@ -62,3 +63,17 @@ class Restriction(Descriptor):
             return False, 'country forbidden'
 
         return False, 'unknown failure'
+
+    @classmethod
+    def from_dict(cls, sp, data, types):
+        catalogue = [
+            CATALOGUE_MAP[name]
+            for name in data.get('catalogues', '').split(',')
+            if name in CATALOGUE_MAP
+        ]
+
+        return cls(sp, {
+            'catalogue': catalogue,
+            'countries_allowed': data.get('allowed', '').replace(',', ''),
+            'countries_forbidden': data.get('forbidden', '').replace(',', '')
+        }, types)

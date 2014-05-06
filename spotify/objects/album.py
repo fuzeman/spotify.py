@@ -5,6 +5,7 @@ from spotify.proto import metadata_pb2
 
 class Album(Descriptor):
     __protobuf__ = metadata_pb2.Album
+    __node__ = 'album'
 
     gid = PropertyProxy
     uri = PropertyProxy('gid', func=lambda gid: Uri.from_gid('album', gid))
@@ -28,3 +29,23 @@ class Album(Descriptor):
     # related - []
     # sale_period - []
     cover_group = PropertyProxy('cover_group', 'ImageGroup')
+
+    @classmethod
+    def from_dict(cls, sp, data, types):
+        uri = Uri.from_id('album', data.get('id'))
+
+        return cls(sp, {
+            'gid': uri.to_gid(),
+            'name': data.get('name'),
+            'artist': [
+                {
+                    'id': data.get('artist-id'),
+                    'name': data.get('artist-name')
+                }
+            ],
+            # TODO album-type
+            # TODO cover, cover-small, cover-large
+            'popularity': float(data.get('popularity')),
+            'restriction': data.get('restrictions'),
+            'external_id': data.get('external-ids')
+        }, types)

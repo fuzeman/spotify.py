@@ -1,5 +1,5 @@
 from spotify.core.request import Request
-from spotify.objects import MAP
+from spotify.objects import NAME_MAP
 from spotify.proto.mercury_pb2 import MercuryRequest, MercuryMultiGetRequest, MercuryMultiGetReply
 
 import base64
@@ -123,7 +123,7 @@ class ProtobufRequest(Request):
             self.emit('error', 'Unrecognized metadata type: "%s"' % content_type)
             return
 
-        return parser_cls.parse(self.sp, data, MAP)
+        return parser_cls.from_protobuf(self.sp, data, NAME_MAP)
 
     def build(self, seq):
         self.args = [

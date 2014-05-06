@@ -1,7 +1,12 @@
 from spotify.components.base import Component
+from spotify.core.helpers import etree_convert
 
 from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
+from lxml import etree
 import datetime
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class PropertyProxy(object):
@@ -10,16 +15,24 @@ class PropertyProxy(object):
         self.type = type_
         self.func = func
 
+    def get_value(self, instance, key):
+        if type(instance) is dict:
+            return instance.get(key)
+
+        if not isinstance(instance, Descriptor):
+            return getattr(instance, key, None)
+
+        return None
+
     def get_attribute(self, instance, path):
         if type(path) is str:
             path = path.split('.')
 
         key = path.pop(0)
 
-        if not hasattr(instance, key):
+        value = self.get_value(instance, key)
+        if value is None:
             return None
-
-        value = getattr(instance, key)
 
         if not len(path):
             return value
@@ -44,16 +57,23 @@ class PropertyProxy(object):
 
         return value
 
-    def parse(self, obj, value, type_map):
+    def get_type(self, types):
+        if self.type in types:
+            return types[self.type]
+
+        if self.name in types:
+            return types[self.name]
+
+        log.warn('Unable to find type for "%s" or "%s"', self.type, self.name)
+        return None
+
+    def parse(self, obj, value, types):
         # Retrieve 'type' from type_map
         if type(self.type) is str:
-            if not type_map:
+            if not types:
                 return value
 
-            if self.type not in type_map:
-                raise ValueError('Unknown type "%s"' % self.type)
-
-            self.type = type_map[self.type]
+            self.type = self.get_type(types)
 
         # Use 'func' if specified
         if self.func:
@@ -64,9 +84,18 @@ class PropertyProxy(object):
 
         # Convert to 'type'
         if isinstance(value, (list, RepeatedCompositeFieldContainer)):
-            return [self.type(obj.sp, x, type_map) for x in value]
+            return [self.construct(obj.sp, x, types) for x in value]
 
-        return self.type(obj.sp, value, type_map)
+        return self.construct(obj.sp, value, types)
+
+    def construct(self, sp, value, types):
+        if isinstance(value, etree._Element):
+            return self.type.from_node(sp, value, types)
+
+        if type(value) is dict:
+            return self.type.from_dict(sp, value, types)
+
+        return self.type(sp, value, types)
 
     @staticmethod
     def parse_date(value):
@@ -78,6 +107,7 @@ class PropertyProxy(object):
 
 class Descriptor(Component):
     __protobuf__ = None
+    __node__ = None
 
     def __init__(self, sp, internal=None, type_map=None):
         super(Descriptor, self).__init__(sp)
@@ -149,11 +179,19 @@ class Descriptor(Component):
         return self.__repr__()
 
     @classmethod
-    def parse(cls, sp, data, type_map):
+    def from_protobuf(cls, sp, data, types):
         internal = cls.__protobuf__()
         internal.ParseFromString(data)
 
-        return cls(sp, internal, type_map)
+        return cls(sp, internal, types)
+
+    @classmethod
+    def from_node(cls, sp, node, types):
+        return cls.from_dict(sp, etree_convert(node), types)
+
+    @classmethod
+    def from_dict(cls, sp, data, types):
+        raise NotImplementedError()
 
     @classmethod
     def construct(cls, sp, **kwargs):

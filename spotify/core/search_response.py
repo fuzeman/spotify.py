@@ -1,9 +1,7 @@
-from spotify.core.uri import Uri
-from spotify.objects import Artist, Album, Track, Playlist
+from spotify.objects import NODE_MAP
 
 from lxml import etree
 import logging
-import traceback
 
 log = logging.getLogger(__name__)
 
@@ -36,95 +34,26 @@ class SearchResponse(object):
         obj = cls()
 
         for m in cls.media_types:
-            cls.parse_media(sp, xml, obj, m)
+            obj.media_update(sp, xml, m)
 
         return obj
 
-    @classmethod
-    def parse_media(cls, sp, xml, obj, key):
+    def media_update(self, sp, xml, key):
         # total-<media>
-        setattr(obj, '%s_total' % key, xml.find('total-%s' % key).text)
+        setattr(self, '%s_total' % key, xml.find('total-%s' % key).text)
 
         # <media>
-        parse_func = getattr(cls, 'parse_%s' % key.rstrip('s'), None)
-
-        if parse_func is None:
-            return
-
-        items = getattr(obj, key)
+        items = getattr(self, key)
 
         for node in xml.find(key):
-            try:
-                items.append(parse_func(sp, node))
-            except Exception, ex:
-                log.warn('Unable to parse node %s (%s) - %s', node, ex, traceback.format_exc())
+            items.append(self.parse_node(sp, node))
 
     @classmethod
-    def parse_artist(cls, sp, node):
-        uri = Uri.from_id('artist', node.find('id').text)
+    def parse_node(cls, sp, node):
+        parser_cls = NODE_MAP.get(node.tag)
 
-        return Artist(sp).dict_update({
-            'gid': uri.to_gid(),
-            'uri': uri,
-            'name': node.find('name').text,
+        if parser_cls is None:
+            log.warn('Unable to parse node with tag "%s"', node.tag)
+            return None
 
-            'popularity': float(node.find('popularity').text),
-
-            # TODO portraits
-            # TODO restrictions
-        })
-
-    @classmethod
-    def parse_album(cls, sp, node):
-        uri = Uri.from_id('album', node.find('id').text)
-
-        return Album(sp).dict_update({
-            'gid': uri.to_gid(),
-            'uri': uri,
-            'name': node.find('name').text,
-
-            # TODO artists
-
-            'popularity': float(node.find('popularity').text),
-
-            # TODO covers
-            # TODO restrictions
-            # TODO external_ids
-        })
-
-    @classmethod
-    def parse_track(cls, sp, node):
-        uri = Uri.from_id('track', node.find('id').text)
-
-        return Track(sp).dict_update({
-            'gid': uri.to_gid(),
-            'uri': uri,
-            'name': node.find('title').text,
-
-            # TODO albums
-            # TODO albums - covers
-            # TODO albums - year
-
-            # TODO artists
-
-            'number': int(node.find('track-number').text),
-            # TODO disc_number ?
-            'duration': int(node.find('length').text),
-
-            'popularity': float(node.find('popularity').text),
-
-            # TODO external_ids
-            # TODO restrictions
-            # TODO files
-        })
-
-    @classmethod
-    def parse_playlist(cls, sp, node):
-        uri = Uri.from_uri(node.find('uri').text)
-
-        return Playlist(sp).dict_update({
-            'uri': uri,
-            'name': node.find('name').text,
-
-            # TODO image
-        })
+        return parser_cls.from_node(sp, node, NODE_MAP)

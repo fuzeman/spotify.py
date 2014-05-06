@@ -30,4 +30,13 @@ ALL = [
     'User'
 ]
 
-MAP = dict([(key, getattr(sys.modules[__name__], key)) for key in ALL])
+NAME_MAP = dict([
+    (key, getattr(sys.modules[__name__], key))
+    for key in ALL
+])
+
+NODE_MAP = dict([
+    (getattr(cls, '__node__'), cls)
+    for cls in NAME_MAP.values()
+    if getattr(cls, '__node__', None)
+])

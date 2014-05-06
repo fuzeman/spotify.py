@@ -17,28 +17,28 @@ class App(object):
 
     def on_search(self, result):
         # Artists
-        print 'artists (%s)' % result.artists_total
-
-        for artist in result.artists:
-            print '\t[%s] %s' % (artist.uri, artist.name)
+        # print 'artists (%s)' % result.artists_total
+        #
+        # for artist in result.artists:
+        #     print '\t[%s] %s' % (artist.uri, artist.name)
 
         # Albums
         print 'albums (%s)' % result.albums_total
 
         for album in result.albums:
-            print '\t[%s] %s' % (album.uri, album.name)
+            print '\t[%s] %s - %s' % (album.uri, album.name, ', '.join([ar.name for ar in album.artists]))
 
         # Tracks
-        print 'tracks (%s)' % result.tracks_total
-
-        for track in result.tracks:
-            print '\t[%s] %s' % (track.uri, track.name)
+        # print 'tracks (%s)' % result.tracks_total
+        #
+        # for track in result.tracks:
+        #     print '\t[%s] %s' % (track.uri, track.name)
 
         # Playlists
-        print 'playlists (%s)' % result.playlists_total
-
-        for playlist in result.playlists:
-            print '\t[%s] %s' % (playlist.uri, playlist.name)
+        # print 'playlists (%s)' % result.playlists_total
+        #
+        # for playlist in result.playlists:
+        #     print '\t[%s] %s' % (playlist.uri, playlist.name)
 
 
 if __name__ == '__main__':
