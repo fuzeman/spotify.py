@@ -2,20 +2,25 @@ from spotify.components.base import Component
 from spotify.core.request import Request
 
 from pyemitter import Emitter
-from threading import Lock
+from threading import Lock, Thread
 from ws4py.client.threadedclient import WebSocketClient
 import json
 import logging
+import time
 
 log = logging.getLogger(__name__)
 
 
 class Connection(Component, Emitter):
+    heartbeat_interval = 180  # (in seconds)
+
     def __init__(self, sp):
         super(Connection, self).__init__(sp)
 
         self.client = None
         self.connected = False
+
+        self.heartbeat_thread = None
 
         self.seq = 0
         self.requests = {}
@@ -115,20 +120,36 @@ class Connection(Component, Emitter):
 
         self.build('connect', *args)\
             .on('success', self.on_connect)\
+            .pipe('error', self)\
             .send()
-        # TODO .pipe('error', self)
+
+    def send_heartbeat(self):
+        self.build('sp/echo', 'h')\
+            .pipe('error', self)\
+            .send()
+
+    def heartbeat(self):
+        while self.connected:
+            time.sleep(self.heartbeat_interval)
+
+            self.send_heartbeat()
 
     def on_connect(self, message):
         log.debug('SpotifyConnection "connect" event: %s', message)
 
-        if message.get('result') == 'ok':
-            log.debug('connected')
-            self.connected = True
+        if message.get('result') != 'ok':
+            # TODO: handle possible error case
+            log.error('unable to connect')
+            return
 
-            return self.emit('connect')
+        log.debug('connected')
+        self.connected = True
 
-        # TODO: handle possible error case
-        log.error('handled error case')
+        # Start heartbeats ('sp/echo')
+        self.heartbeat_thread = Thread(target=self.heartbeat)
+        self.heartbeat_thread.start()
+
+        self.emit('connect')
 
 
 class Client(WebSocketClient, Emitter):
