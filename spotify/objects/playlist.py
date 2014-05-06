@@ -14,6 +14,7 @@ class PlaylistItem(Descriptor):
 class Playlist(Descriptor):
     __protobuf__ = playlist4changes_pb2.ListDump
 
+    uri = PropertyProxy
     name = PropertyProxy('attributes.name')
 
     length = PropertyProxy
