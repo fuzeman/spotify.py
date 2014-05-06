@@ -4,9 +4,11 @@ base62 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 
 class Uri(object):
-    def __init__(self, type, code):
+    def __init__(self, type, code, username=None):
         self.type = type
         self.code = code
+
+        self.username = username
 
     def to_id(self):
         v = 0
@@ -17,10 +19,19 @@ class Uri(object):
         return hex(v)[2:-1].rjust(32, "0")
 
     def to_gid(self):
-        pass
+        id = self.to_id().rstrip('0')
+
+        return binascii.unhexlify(id)
 
     def __str__(self):
-        return 'spotify:%s:%s' % (self.type, self.code)
+        parts = []
+
+        if self.username:
+            parts.extend(['user', self.username])
+
+        parts.extend([self.type, self.code])
+
+        return 'spotify:%s' % (':'.join(parts))
 
     def __repr__(self):
         return '<Uri %s>' % (self.__str__())
@@ -49,11 +60,24 @@ class Uri(object):
 
     @classmethod
     def from_uri(cls, uri):
+        if not uri:
+            return None
+
         parts = uri.split(':')
 
-        if len(parts) == 3:
+        if not parts:
+            return None
+
+        # Strip 'spotify' from start
+        if parts[0] == 'spotify':
             parts = parts[1:]
-        elif len(parts) < 2 or len(parts) > 3:
-            raise ValueError('Unknown URI provided')
+
+        # Check if 'user' part exists
+        # ('user:<username>:<type>:<code>')
+        if parts[0] == 'user':
+            if len(parts) < 4:
+                return None
+
+            return cls(parts[2], parts[3], parts[1])
 
         return cls(parts[0], parts[1])
