@@ -23,13 +23,8 @@ class Request(Emitter):
     def process(self, data):
         if 'error' in data:
             return self.emit('error', data['error'])
-        elif 'id' in data:
-            return self.emit('success', data)
 
-        error = 'Unhandled WebSocket message'
-
-        log.error('%s: %s' % (error, data))
-        return self.emit('error', error)
+        return self.emit('success', data)
 
     def build(self, seq):
         return {

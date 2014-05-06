@@ -88,13 +88,25 @@ class Descriptor(Component):
         self._type_map = type_map
         self._cache = {}
 
-    def update(self, obj, *args):
+    def dict_update(self, attributes):
+        # Clear cache to ensure we don't use previous values
+        self._cache = {}
+
+        # Update 'self' with values from 'obj'
+        for key, value in attributes.items():
+            setattr(self, key, value)
+
+        return self
+
+    def protobuf_update(self, obj, *args):
         # Clear cache to ensure we don't use previous values
         self._cache = {}
 
         # Update 'self' with values from 'obj'
         for key in args:
             setattr(self, key, getattr(obj, key))
+
+        return self
 
     def _find_proxies(self):
         proxies = {}
