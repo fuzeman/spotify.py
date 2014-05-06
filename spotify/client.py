@@ -1,9 +1,6 @@
-from spotify.commands.do_work import DoWork
-from spotify.commands.ping_flash2 import PingFlash2
-from spotify.components.authentication import Authentication
+from spotify.commands.manager import CommandManager
 from spotify.components.base import Component
-from spotify.components.connection import Connection
-from spotify.components.metadata import Metadata
+from spotify.components.manager import ComponentManager
 from spotify.objects.user import User
 
 from pyemitter import Emitter
@@ -21,20 +18,8 @@ class Spotify(Component, Emitter):
         self.create_session(user_agent)
 
         # Construct modules
-        self._connection = Connection(self)\
-            .pipe(['error', 'connect'], self)\
-            .on('command', self.on_command)
-
-        self._authentication = Authentication(self)\
-            .pipe(['error'], self)\
-            .on('authenticated', self.on_authenticated)
-
-        self._metadata = Metadata(self)
-
-        self.command_handlers = {
-            'do_work': DoWork(self),
-            'ping_flash2': PingFlash2(self)
-        }
+        self.commands = CommandManager(self)
+        self.components = ComponentManager(self)
 
         # Session data
         self.config = None
@@ -57,11 +42,11 @@ class Spotify(Component, Emitter):
 
     # Authentication
     def login(self, username=None, password=None, callback=None):
-        self._authentication.login(username, password)
+        self.components.authentication.login(username, password)
         return self.on('login', callback)
 
     def login_facebook(self, uid, token, callback=None):
-        self._authentication.login_facebook(uid, token)
+        self.components.authentication.login_facebook(uid, token)
         return self.on('login', callback)
 
     def on_authenticated(self, config):
@@ -106,11 +91,11 @@ class Spotify(Component, Emitter):
         url = 'wss://%s/' % data['ap_list'][0]
         log.debug('Selected AP at "%s"', url)
 
-        self._connection.connect(url)
+        self.components.connection.connect(url)
 
     def on_command(self, name, *args):
-        if name in self.command_handlers:
-            return self.command_handlers[name].process(*args)
+        if self.commands.process(name, *args):
+            return
 
         if name == 'login_complete':
             return self.on_login_complete()
@@ -132,23 +117,23 @@ class Spotify(Component, Emitter):
 
     # Messaging
     def send(self, name, *args):
-        return self._connection.send(name, *args)
+        return self.components.connection.send(name, *args)
 
     def build(self, name, *args):
-        return self._connection.build(name, *args)
+        return self.components.connection.build(name, *args)
 
     def send_request(self, request):
-        return self._connection.send_request(request)
+        return self.components.connection.send_request(request)
 
     def send_message(self, message):
-        self._connection.send_message(message)
+        self.components.connection.send_message(message)
 
     # Metadata
     def metadata(self, uris, callback=None):
-        return self._metadata.get(uris, callback)
+        return self.components.metadata.get(uris, callback)
 
     def playlist(self, uri, start=0, count=100, callback=None):
-        return self._metadata.playlist(uri, start, count, callback)
+        return self.components.metadata.playlist(uri, start, count, callback)
 
     def playlists(self, username, start=0, count=100, callback=None):
-        return self._metadata.playlists(username, start, count, callback)
+        return self.components.metadata.playlists(username, start, count, callback)

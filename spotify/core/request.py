@@ -17,7 +17,7 @@ class Request(Emitter):
         self.args = args
 
     def send(self):
-        self.sp._connection.send_request(self)
+        self.sp.send_request(self)
         return self
 
     def process(self, data):
