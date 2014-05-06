@@ -36,11 +36,11 @@ class Artist(Descriptor):
     def from_dict(cls, sp, data, types):
         uri = Uri.from_id('artist', data.get('id'))
 
-        return Artist(sp).dict_update({
+        return cls(sp, {
             'gid': uri.to_gid(),
             'uri': uri,
             'name': data.get('name'),
             # TODO portraits
             'popularity': float(data.get('popularity')) if data.get('popularity') else None,
             'restriction': data.get('restrictions')
-        })
+        }, types)

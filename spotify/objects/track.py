@@ -10,6 +10,7 @@ log = logging.getLogger(__name__)
 
 class Track(Descriptor):
     __protobuf__ = metadata_pb2.Track
+    __node__ = 'track'
 
     gid = PropertyProxy
     uri = PropertyProxy('gid', func=lambda gid: Uri.from_gid('track', gid))
@@ -208,3 +209,23 @@ class Track(Descriptor):
 
             position  # max_continuous
         )
+
+    @classmethod
+    def from_dict(cls, sp, data, types):
+        uri = Uri.from_id('track', data.get('id'))
+
+        return cls(sp, {
+            'gid': uri.to_gid(),
+            'uri': uri,
+            'name': data.get('title'),
+            # TODO artist-id, artist
+            # TODO album, album-id, album-artist, album-artist-id
+            # TODO year
+            'number': int(data.get('track-number')),
+            'duration': int(data.get('length')),
+            # TODO files
+            # TODO cover, cover-small, cover-large
+            'popularity': float(data.get('popularity')),
+            'restriction': data.get('restrictions'),
+            'external_id': data.get('external-ids')
+        }, types)
