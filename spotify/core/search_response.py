@@ -76,7 +76,7 @@ class SearchResponse(object):
 
     @classmethod
     def parse_album(cls, sp, node):
-        uri = Uri.from_id('artist', node.find('id').text)
+        uri = Uri.from_id('album', node.find('id').text)
 
         return Album(sp).dict_update({
             'gid': uri.to_gid(),
@@ -94,7 +94,7 @@ class SearchResponse(object):
 
     @classmethod
     def parse_track(cls, sp, node):
-        uri = Uri.from_id('artist', node.find('id').text)
+        uri = Uri.from_id('track', node.find('id').text)
 
         return Track(sp).dict_update({
             'gid': uri.to_gid(),
