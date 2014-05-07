@@ -1,3 +1,4 @@
+from spotify.core.helpers import convert
 from spotify.core.uri import Uri
 from spotify.objects.base import Descriptor, PropertyProxy
 from spotify.proto import metadata_pb2
@@ -43,9 +44,42 @@ class Album(Descriptor):
                     'name': data.get('artist-name')
                 }
             ],
-            # TODO album-type
-            # TODO cover, cover-small, cover-large
-            'popularity': float(data.get('popularity')),
+            'type': cls.get_type(data.get('album-type')),
+            'cover': cls.get_covers(data),
+            'popularity': convert(data.get('popularity'), float),
             'restriction': data.get('restrictions'),
             'external_id': data.get('external-ids')
         }, types)
+
+    @classmethod
+    def get_type(cls, value):
+        if value == 'album':
+            return 1L
+
+        if value == 'single':
+            return 2L
+
+        if value == 'compilation':
+            return 3L
+
+        return None
+
+    @classmethod
+    def get_covers(cls, data):
+        if 'cover' not in data:
+            return []
+
+        return [
+            {
+                'file_id': data.get('cover'),
+                'size': 0
+            },
+            {
+                'file_id': data.get('cover-small'),
+                'size': 1
+            },
+            {
+                'file_id': data.get('cover-large'),
+                'size': 2
+            }
+        ]

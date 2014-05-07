@@ -27,3 +27,13 @@ def etree_dict(node):
 
 def etree_list(node):
     return [etree_convert(sub) for sub in node]
+
+
+def convert(value, to_type, default=None):
+    if value is None:
+        return default
+
+    try:
+        return to_type(value)
+    except:
+        return default

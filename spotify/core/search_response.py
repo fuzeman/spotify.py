@@ -1,4 +1,4 @@
-from spotify.objects import NODE_MAP
+from spotify.objects import NODE_MAP, NAME_MAP
 
 from lxml import etree
 import logging
@@ -56,4 +56,4 @@ class SearchResponse(object):
             log.warn('Unable to parse node with tag "%s"', node.tag)
             return None
 
-        return parser_cls.from_node(sp, node, NODE_MAP)
+        return parser_cls.from_node(sp, node, NAME_MAP)
