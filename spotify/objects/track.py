@@ -1,4 +1,4 @@
-from spotify.core.helpers import set_defaults
+from spotify.core.helpers import set_defaults, etree_convert
 from spotify.core.uri import Uri
 from spotify.objects.base import Descriptor, PropertyProxy
 from spotify.proto import metadata_pb2
@@ -211,6 +211,12 @@ class Track(Descriptor):
         )
 
     @classmethod
+    def from_node(cls, sp, node, types):
+        return cls.from_dict(sp, etree_convert(node, {
+            'artist-id': ('artist-id', 'artist')
+        }), types)
+
+    @classmethod
     def from_dict(cls, sp, data, types):
         uri = Uri.from_id('track', data.get('id'))
 
@@ -218,14 +224,36 @@ class Track(Descriptor):
             'gid': uri.to_gid(),
             'uri': uri,
             'name': data.get('title'),
-            # TODO artist-id, artist
-            # TODO album, album-id, album-artist, album-artist-id
+
+            'artist': [
+                {
+                    'id': artist.get('artist-id'),
+                    'name': artist.get('artist')
+                }
+                for artist in data.get('artist', [])
+            ],
+
+            'album': [
+                {
+                    'id': data.get('album-id'),
+                    'name': data.get('album'),
+
+                    'artist-id': data.get('album-artist-id'),
+                    'artist-name': data.get('album-artist'),
+
+                    'cover': data.get('cover'),
+                    'cover-small': data.get('cover-small'),
+                    'cover-large': data.get('cover-large'),
+                }
+            ],
+
             # TODO year
             'number': int(data.get('track-number')),
             'duration': int(data.get('length')),
-            # TODO files
-            # TODO cover, cover-small, cover-large
+
             'popularity': float(data.get('popularity')),
+
+            'external_id': data.get('external-ids'),
             'restriction': data.get('restrictions'),
-            'external_id': data.get('external-ids')
+            'file': data.get('files')
         }, types)

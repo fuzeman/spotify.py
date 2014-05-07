@@ -20,25 +20,25 @@ class App(object):
         print 'artists (%s)' % result.artists_total
 
         for artist in result.artists:
-            print '\t[%s] %s' % (artist.uri, artist.name)
+            print '\t[%s] "%s"' % (artist.uri, artist.name)
 
         # Albums
         print 'albums (%s)' % result.albums_total
 
         for album in result.albums:
-            print '\t[%s] %s - %s' % (album.uri, album.name, ', '.join([ar.name for ar in album.artists]))
+            print '\t[%s] "%s" - %s' % (album.uri, album.name, ', '.join([ar.name for ar in album.artists]))
 
         # Tracks
         print 'tracks (%s)' % result.tracks_total
 
         for track in result.tracks:
-            print '\t[%s] %s' % (track.uri, track.name)
+            print '\t[%s] "%s" - %s' % (track.uri, track.name, ', '.join([ar.name for ar in track.artists if ar.name]))
 
         # Playlists
         print 'playlists (%s)' % result.playlists_total
 
         for playlist in result.playlists:
-            print '\t[%s] %s' % (playlist.uri, playlist.name)
+            print '\t[%s] "%s"' % (playlist.uri, playlist.name)
 
 
 if __name__ == '__main__':
