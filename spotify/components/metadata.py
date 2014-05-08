@@ -52,7 +52,9 @@ class Metadata(Component):
         request = ProtobufRequest(self.sp, 'sp/hm_b64', {
             'method': 'GET',
             'uri': 'hm://playlist/%s?from=%s&length=%s' % ('/'.join(parts[1:]), start, count)
-        }, Playlist)
+        }, Playlist, defaults={
+            'uri': uri
+        })
 
         return self.request_wrapper(request, callback)
 
