@@ -53,7 +53,7 @@ class Metadata(Component):
             'method': 'GET',
             'uri': 'hm://playlist/%s?from=%s&length=%s' % ('/'.join(parts[1:]), start, count)
         }, Playlist, defaults={
-            'uri': uri
+            'uri': Uri.from_uri(uri)
         })
 
         return self.request_wrapper(request, callback)
@@ -65,6 +65,8 @@ class Metadata(Component):
         request = ProtobufRequest(self.sp, 'sp/hm_b64', {
             'method': 'GET',
             'uri': 'hm://playlist/user/%s/rootlist?from=%s&length=%s' % (username, start, count)
-        }, Playlist)
+        }, Playlist, defaults={
+            'uri': Uri.from_uri('spotify:user:%s:rootlist' % username)
+        })
 
         return self.request_wrapper(request, callback)

@@ -13,6 +13,17 @@ class PlaylistItem(Descriptor):
 
     added_by = PropertyProxy('attributes.added_by')
 
+    def fetch(self, start=0, count=100, callback=None):
+        if callback:
+            return self.sp.playlist(self.uri, start,count, callback)
+
+        # Fetch full playlist detail
+        event = REvent()
+        self.sp.playlist(self.uri, start, count, callback=lambda pl: event.set(pl))
+
+        # Wait until result is available
+        return event.wait()
+
 
 class Playlist(Descriptor):
     __protobuf__ = playlist4changes_pb2.ListDump
@@ -79,19 +90,31 @@ class Playlist(Descriptor):
             # Return item
             yield item
 
-    def fetch(self, group=None, flat=False):
+    def fetch(self, group=None, flat=None):
+        if self.uri.type == 'rootlist':
+            return self.fetch_playlists()
+
+        if self.uri.type == 'playlist':
+            return self.fetch_tracks()
+
+        return None
+
+    def fetch_playlists(self, group=None, flat=False):
         for item in self.list(group, flat):
             # Return plain PlaylistItem for groups
             if item.uri.startswith('spotify:group'):
                 yield item
                 continue
 
-            # Fetch playlist metadata (to find the name)
-            event = REvent()
-            self.sp.playlist(item.uri, count=0, callback=lambda pl: event.set(pl))
+            yield item.fetch()
 
-            # Wait until result is available (to keep playlist order)
-            yield event.wait()
+    def fetch_tracks(self):
+        uris = [item.uri for item in self.items]
+
+        event = REvent()
+        self.sp.metadata(uris, callback=lambda items: event.set(items))
+
+        return event.wait()
 
     @classmethod
     def from_dict(cls, sp, data, types):

@@ -75,9 +75,10 @@ class Uri(object):
         # Check if 'user' part exists
         # ('user:<username>:<type>:<code>')
         if parts[0] == 'user':
-            if len(parts) < 4:
-                return None
-
-            return cls(parts[2], parts[3], parts[1])
+            return cls(
+                parts[2],
+                parts[3] if len(parts) >= 4 else None,
+                parts[1]
+            )
 
         return cls(parts[0], parts[1])
