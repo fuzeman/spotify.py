@@ -4,11 +4,12 @@ base62 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 
 class Uri(object):
-    def __init__(self, type, code, username=None):
+    def __init__(self, type, code, username=None, title=None):
         self.type = type
         self.code = code
 
         self.username = username
+        self.title = title
 
     def to_id(self):
         v = 0
@@ -30,6 +31,9 @@ class Uri(object):
             parts.extend(['user', self.username])
 
         parts.extend([self.type, self.code])
+
+        if self.title:
+            parts.append(self.title)
 
         return 'spotify:%s' % (':'.join(parts))
 
@@ -63,6 +67,9 @@ class Uri(object):
         if not uri:
             return None
 
+        if type(uri) is Uri:
+            return uri
+
         parts = uri.split(':')
 
         if not parts:
@@ -76,9 +83,18 @@ class Uri(object):
         # ('user:<username>:<type>:<code>')
         if parts[0] == 'user':
             return cls(
-                parts[2],
-                parts[3] if len(parts) >= 4 else None,
-                parts[1]
+                username=parts[1],
+                type=parts[2],
+                code=parts[3] if len(parts) > 3 else None
+            )
+
+        # Spotify groups (playlist folders)
+        # ('spotify;start-group:<code>:<title>')
+        if parts[0] == 'group' or parts[0].endswith('-group'):
+            return cls(
+                type=parts[0],
+                code=parts[1],
+                title=parts[2] if len(parts) > 2 else None
             )
 
         return cls(parts[0], parts[1])
