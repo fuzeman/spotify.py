@@ -20,9 +20,7 @@ class Uri(object):
         return hex(v)[2:-1].rjust(32, "0")
 
     def to_gid(self):
-        id = self.to_id().rstrip('0')
-
-        return binascii.unhexlify(id)
+        return binascii.unhexlify(self.to_id())
 
     def __str__(self):
         parts = []
