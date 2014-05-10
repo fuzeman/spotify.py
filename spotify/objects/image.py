@@ -4,6 +4,12 @@ from spotify.core.uri import Uri
 from spotify.objects.base import Descriptor, PropertyProxy
 from spotify.proto import metadata_pb2
 
+SIZES = {
+    0: '300',
+    1: '60',
+    2: '640'
+}
+
 
 class Image(Descriptor):
     __protobuf__ = metadata_pb2.Image
@@ -20,14 +26,16 @@ class Image(Descriptor):
         if not self.file_uri or type(self.file_uri) is not Uri:
             return None
 
-        return 'https://%s/%s/%s' % (RESOURCE_HOST, self.width, self.file_uri.to_id())
+        return 'https://%s/%s/%s' % (
+            RESOURCE_HOST,
+            SIZES.get(self.size, self.width),
+            self.file_uri.to_id(size=40)
+        )
 
     @classmethod
     def from_dict(cls, sp, data, types):
-        uri = Uri.from_id('image', data.get('file_id'))
-
         return cls(sp, {
-            'file_id': uri.to_gid(),
+            'file_id': Uri.from_id('image', data.get('file_id')).to_gid(size=40),
 
             'size': convert(data.get('size'), long),
 
