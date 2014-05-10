@@ -27,7 +27,7 @@ class Image(Descriptor):
         uri = Uri.from_id('image', data.get('file_id'))
 
         return cls(sp, {
-            'file_uri': uri,
+            'file_id': uri.to_gid(),
 
             'size': convert(data.get('size'), long),
 
