@@ -26,7 +26,15 @@ class AlbumGroup(Descriptor):
 
         if album is None:
             log.debug('Unable to find available album in group')
-            return None
+            # Return first item as a placeholder
+            return self.albums[0]
 
         log.debug('Found available album "%s"', album.uri)
         return album
+
+    @classmethod
+    def from_protobuf(cls, sp, internal, types, defaults=None):
+        obj = super(AlbumGroup, cls).from_protobuf(sp, internal, types, defaults)
+
+        # Return first available album (instead of the actual group)
+        return obj.find_available()

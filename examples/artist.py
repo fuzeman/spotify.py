@@ -22,12 +22,7 @@ class App(object):
             self.sp.metadata(self.artist_uri, self.on_artist)
 
     def on_artist(self, artist):
-        album = artist.albums[0].find_available()
-
-        if album is None:
-            return
-
-        self.sp.metadata(album.uri, self.on_album)
+        self.sp.metadata(artist.albums[0].uri, self.on_album)
 
     def on_album(self, album):
         print album.name
