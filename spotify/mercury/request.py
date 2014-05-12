@@ -1,15 +1,17 @@
 from spotify.core.request import Request
+from spotify.mercury.cache import MercuryCache
 from spotify.objects import NAME_MAP
-from spotify.proto.mercury_pb2 import MercuryRequest, MercuryMultiGetRequest, MercuryMultiGetReply
+from spotify.proto import mercury_pb2
 
 import base64
 import httplib
 import logging
 
 log = logging.getLogger(__name__)
+cache = MercuryCache()
 
 
-class ProtobufRequest(Request):
+class MercuryRequest(Request):
     def __init__(self, sp, name, requests, schema_response, header=None,
                  defaults=None):
         """
@@ -21,7 +23,7 @@ class ProtobufRequest(Request):
         :type header: dict
         :type defaults: dict
         """
-        super(ProtobufRequest, self).__init__(sp, name, None)
+        super(MercuryRequest, self).__init__(sp, name, None)
 
         self.schema_response = schema_response
         self.defaults = defaults
@@ -54,7 +56,7 @@ class ProtobufRequest(Request):
         self.payload = payload
 
     def prepare_single(self, request):
-        m_request = MercuryRequest()
+        m_request = mercury_pb2.MercuryRequest()
 
         # Fill MercuryRequest
         m_request.uri = request.get('uri', '')
@@ -67,7 +69,7 @@ class ProtobufRequest(Request):
     def prepare_multi(self, header, requests):
         request = self.prepare_single(header)
 
-        payload = MercuryMultiGetRequest()
+        payload = mercury_pb2.MercuryMultiGetRequest()
 
         for r in requests:
             payload.request.extend([self.prepare_single(r)])
@@ -78,7 +80,7 @@ class ProtobufRequest(Request):
         log.debug('process data: %s', repr(data))
         result = data['result']
 
-        header = MercuryRequest()
+        header = mercury_pb2.MercuryRequest()
         header.ParseFromString(base64.b64decode(result[0]))
 
         if 400 <= header.status_code < 600:
@@ -95,11 +97,11 @@ class ProtobufRequest(Request):
             self.emit('error', 'Server Error: Server didn\'t send a multi-GET reply for a multi-GET request!')
             return
 
-        self.parse(header.content_type, base64.b64decode(result[1]))
+        self.process_reply(header, base64.b64decode(result[1]))
 
-    def parse(self, content_type, data):
-        if content_type == 'vnd.spotify/mercury-mget-reply':
-            response = MercuryMultiGetReply()
+    def process_reply(self, header, data):
+        if header.content_type == 'vnd.spotify/mercury-mget-reply':
+            response = mercury_pb2.MercuryMultiGetReply()
             response.ParseFromString(data)
 
             items = []
@@ -109,13 +111,16 @@ class ProtobufRequest(Request):
                     items.append(None)
                     continue
 
-                items.append(self.parse_item(item.content_type, item.body))
+                items.append(self.process_item(header, item.body, item.content_type))
 
             self.emit('success', items)
         else:
-            self.emit('success', self.parse_item(content_type, data))
+            self.emit('success', self.process_item(header, data))
 
-    def parse_item(self, content_type, data):
+    def process_item(self, header, data, content_type=None):
+        if content_type is None:
+            content_type = header.content_type
+
         parser_cls = self.schema_response
 
         if type(parser_cls) is dict:
@@ -128,6 +133,8 @@ class ProtobufRequest(Request):
         internal = parser_cls.__protobuf__()
         internal.ParseFromString(data)
 
+        cache.store(header, content_type, internal)
+
         return parser_cls.from_protobuf(self.sp, internal, NAME_MAP, self.defaults)
 
     def build(self, seq):
@@ -139,7 +146,7 @@ class ProtobufRequest(Request):
         if self.payload:
             self.args.append(base64.b64encode(self.payload.SerializeToString()))
 
-        return super(ProtobufRequest, self).build(seq)
+        return super(MercuryRequest, self).build(seq)
 
     def get_number(self, method):
         if method == 'SUB':
