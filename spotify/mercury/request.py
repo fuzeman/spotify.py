@@ -3,6 +3,7 @@ from spotify.mercury.cache import MercuryCache
 from spotify.objects import NAME_MAP
 from spotify.proto import mercury_pb2
 
+from collections import OrderedDict
 import base64
 import httplib
 import logging
@@ -25,37 +26,48 @@ class MercuryRequest(Request):
         """
         super(MercuryRequest, self).__init__(sp, name, None)
 
+        self.requests = requests if type(requests) is list else [requests]
         self.schema_response = schema_response
         self.defaults = defaults
 
         self.request = None
         self.payload = None
 
-        self.prepare(requests, header)
+        self.response = OrderedDict()
 
-    def prepare(self, requests, header=None):
-        if type(requests) is not list:
-            requests = [requests]
+        self.prepare(header, self.requests)
 
-        request = None
-        payload = None
+    def prepare(self, header, requests):
+        payload = mercury_pb2.MercuryMultiGetRequest()
 
-        if len(requests) == 1:
-            request = self.prepare_single(requests[0])
-        elif len(requests) > 1:
-            if header is None:
-                raise ValueError('A header is required to send multiple requests')
+        for request in requests:
+            request = self.prepare_request(request)
 
-            header['content_type'] = 'vnd.spotify/mercury-mget-request'
+            response = cache.get(request.uri)
 
-            request, payload = self.prepare_multi(header, requests)
-        else:
-            raise ValueError('At least one request is required')
+            if response:
+                # Found valid response in cache
+                self.response[request.uri] = response
+                continue
 
-        self.request = request
+            payload.request.extend([request])
+
+        if not len(payload.request):
+            return
+
+        if len(payload.request) == 1:
+            self.request = payload.request[0]
+            return
+
+        if header is None:
+            raise ValueError('A header is required to send multiple requests')
+
+        header['content_type'] = 'vnd.spotify/mercury-mget-request'
+
+        self.request = self.prepare_request(header)
         self.payload = payload
 
-    def prepare_single(self, request):
+    def prepare_request(self, request):
         m_request = mercury_pb2.MercuryRequest()
 
         # Fill MercuryRequest
@@ -65,16 +77,6 @@ class MercuryRequest(Request):
         m_request.source = request.get('source', '')
 
         return m_request
-
-    def prepare_multi(self, header, requests):
-        request = self.prepare_single(header)
-
-        payload = mercury_pb2.MercuryMultiGetRequest()
-
-        for r in requests:
-            payload.request.extend([self.prepare_single(r)])
-
-        return request, payload
 
     def process(self, data):
         log.debug('process data: %s', repr(data))
@@ -104,23 +106,52 @@ class MercuryRequest(Request):
             response = mercury_pb2.MercuryMultiGetReply()
             response.ParseFromString(data)
 
-            items = []
-
-            for item in response.reply:
-                if item.status_code != 200:
-                    items.append(None)
-                    continue
-
-                items.append(self.process_item(header, item.body, item.content_type))
-
-            self.emit('success', items)
+            items = [
+                (item.content_type, self.parse_item(item.body, item.content_type))
+                if item.status_code == 200 else None
+                for item in response.reply
+            ]
         else:
-            self.emit('success', self.process_item(header, data))
+            items = [
+                (header.content_type, self.parse_item(data, header.content_type))
+            ]
 
-    def process_item(self, header, data, content_type=None):
-        if content_type is None:
-            content_type = header.content_type
+        for content_type, internal in items:
+            uri = '/'.join(cache.key_hermes(content_type, internal))
 
+            self.response[uri] = cache.store(header, content_type, internal)
+
+        self.respond()
+
+    def parse_item(self, data, content_type):
+        parser_cls = self.get_descriptor(content_type)
+
+        internal = parser_cls.__protobuf__()
+        internal.ParseFromString(data)
+
+        return internal
+
+    def respond(self):
+        if len(self.response) != len(self.requests):
+            return False
+
+        result = []
+
+        for uri, item in self.response.items():
+            cls = self.get_descriptor(item.content_type)
+
+            result.append(cls.from_protobuf(self.sp, item.internal, NAME_MAP, self.defaults))
+
+        log.debug('returning result: %s', result)
+
+        if len(self.requests) == 1:
+            self.emit('success', result[0] if result else None)
+        else:
+            self.emit('success', result)
+
+        return True
+
+    def get_descriptor(self, content_type):
         parser_cls = self.schema_response
 
         if type(parser_cls) is dict:
@@ -128,16 +159,14 @@ class MercuryRequest(Request):
 
         if parser_cls is None:
             self.emit('error', 'Unrecognized metadata type: "%s"' % content_type)
-            return
+            return None
 
-        internal = parser_cls.__protobuf__()
-        internal.ParseFromString(data)
-
-        cache.store(header, content_type, internal)
-
-        return parser_cls.from_protobuf(self.sp, internal, NAME_MAP, self.defaults)
+        return parser_cls
 
     def build(self, seq):
+        if self.respond() or not self.request:
+            return None
+
         self.args = [
             self.get_number(self.request.method),
             base64.b64encode(self.request.SerializeToString())
