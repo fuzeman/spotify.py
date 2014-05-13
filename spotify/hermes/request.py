@@ -32,7 +32,7 @@ class HermesRequest(MercuryRequest):
 
         if uri is None:
             # Fallback to original request uri
-            uri = self.requests[index].uri
+            uri = self.prepared_requests[index].uri
 
         if not uri:
             # URI doesn't look valid

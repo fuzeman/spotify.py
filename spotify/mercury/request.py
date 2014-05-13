@@ -23,6 +23,8 @@ class MercuryRequest(Request):
         """
         super(MercuryRequest, self).__init__(sp, name, None)
 
+        self.requests = requests if type(requests) is list else [requests]
+
         self.schema = schema
         self.defaults = defaults
 
@@ -31,15 +33,13 @@ class MercuryRequest(Request):
 
         self.response = OrderedDict()
 
-        self.requests = []
-        self.prepare(header, requests)
+        self.prepared_requests = []
+        self.prepare(header)
 
-    def prepare(self, header, requests):
-        requests = requests if type(requests) is list else [requests]
-
+    def prepare(self, header):
         payload = mercury_pb2.MercuryMultiGetRequest()
 
-        for request in requests:
+        for request in self.requests:
             request = self.parse_request(request)
 
             if self.cached_response(request):
@@ -48,7 +48,7 @@ class MercuryRequest(Request):
             # Update payload
             payload.request.extend([request])
 
-            self.requests.append(request)
+            self.prepared_requests.append(request)
 
         # Ensure we have at least one request
         if not len(payload.request):
