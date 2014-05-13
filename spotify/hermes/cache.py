@@ -9,19 +9,20 @@ log = logging.getLogger(__name__)
 
 class HermesCache(object):
     schema_types = {
-        'vnd.spotify/metadata-album': ('metadata', 'album'),
-        'vnd.spotify/metadata-track': ('metadata', 'track')
+        'vnd.spotify/metadata-artist':  ('metadata', 'artist'),
+        'vnd.spotify/metadata-album':   ('metadata', 'album'),
+        'vnd.spotify/metadata-track':   ('metadata', 'track')
     }
 
     content_types = [
-        'hm://metadata/album',
-        'hm://metadata/track'
+        'hm://%s/%s' % (group, type)
+        for (group, type) in schema_types.values()
     ]
 
     def __init__(self):
         self._store = {}
 
-    def get_type(self, content_type):
+    def get_schema_key(self, content_type):
         key = self.schema_types.get(content_type)
 
         if key is None:
@@ -30,8 +31,8 @@ class HermesCache(object):
 
         return key
 
-    def from_object(self, content_type, internal):
-        group, type = self.get_type(content_type)
+    def get_object_key(self, content_type, internal):
+        group, type = self.get_schema_key(content_type)
 
         if group is None or type is None:
             return None, None
@@ -40,7 +41,15 @@ class HermesCache(object):
 
         return 'hm://%s/%s' % (group, uri.type), uri.to_id()
 
-    def from_uri(self, hm):
+    def get_object_uri(self, content_type, internal):
+        k_content, k_item = self.get_object_key(content_type, internal)
+
+        if not k_content or not k_item:
+            return None
+
+        return '/'.join([k_content, k_item])
+
+    def get_uri_key(self, hm):
         x = hm.rindex('/')
 
         k_content = hm[:x]
@@ -53,7 +62,7 @@ class HermesCache(object):
         return k_content, k_item
 
     def store(self, header, content_type, internal):
-        k_content, k_item = self.from_object(content_type, internal)
+        k_content, k_item = self.get_object_key(content_type, internal)
 
         if not k_content or not k_item:
             return None
@@ -68,7 +77,7 @@ class HermesCache(object):
         return item
 
     def get(self, uri):
-        k_content, k_item = self.from_uri(uri)
+        k_content, k_item = self.get_uri_key(uri)
 
         if not k_content or not k_item:
             return None

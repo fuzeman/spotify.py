@@ -28,7 +28,10 @@ class HermesRequest(MercuryRequest):
         return True
 
     def update_response(self, header, content_type, internal):
-        uri = '/'.join(cache.from_object(content_type, internal))
+        uri = cache.get_object_uri(content_type, internal)
+
+        if uri is None:
+            raise NotImplementedError()
 
         # Update response
         self.response[uri] = (content_type, internal)
