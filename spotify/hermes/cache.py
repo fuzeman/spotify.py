@@ -71,7 +71,7 @@ class HermesCache(object):
         k_content, k_item = self.from_uri(uri)
 
         if not k_content or not k_item:
-            return False
+            return None
 
         if self._store.get(k_content) is None:
             return None
