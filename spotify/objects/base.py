@@ -89,13 +89,16 @@ class PropertyProxy(object):
         return self.construct(obj.sp, value, types)
 
     def construct(self, sp, value, types):
+        if value is None:
+            return None
+
         if isinstance(value, etree._Element):
             return self.type.from_node(sp, value, types)
 
         if type(value) is dict:
             return self.type.from_dict(sp, value, types)
 
-        return self.type(sp, value, types)
+        return self.type.from_protobuf(sp, value, types)
 
     @staticmethod
     def parse_date(value):
@@ -119,6 +122,9 @@ class Descriptor(Component):
         self._cache = {}
 
     def dict_update(self, attributes):
+        if not attributes:
+            return self
+
         # Clear cache to ensure we don't use previous values
         self._cache = {}
 
@@ -179,11 +185,13 @@ class Descriptor(Component):
         return self.__repr__()
 
     @classmethod
-    def from_protobuf(cls, sp, data, types):
-        internal = cls.__protobuf__()
-        internal.ParseFromString(data)
+    def from_protobuf(cls, sp, internal, types, defaults=None):
+        obj = cls(sp, internal, types)
 
-        return cls(sp, internal, types)
+        if defaults:
+            return obj.dict_update(defaults)
+
+        return obj
 
     @classmethod
     def from_node(cls, sp, node, types):

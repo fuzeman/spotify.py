@@ -13,7 +13,7 @@ class App(object):
     def run(self):
         @self.sp.login(os.environ['USERNAME'], os.environ['PASSWORD'])
         def on_login():
-            self.sp.search('daft punk', count=3, callback=self.on_search)
+            self.sp.search('daft punk', count=7, callback=self.on_search)
 
     def on_search(self, result):
         # Artists
@@ -22,11 +22,23 @@ class App(object):
         for artist in result.artists:
             print '\t[%s] "%s"' % (artist.uri, artist.name)
 
+            if not artist.portraits:
+                continue
+
+            for portrait in artist.portraits:
+                print '\t\t', portrait.file_url
+
         # Albums
         print 'albums (%s)' % result.albums_total
 
         for album in result.albums:
             print '\t[%s] "%s" - %s' % (album.uri, album.name, ', '.join([ar.name for ar in album.artists]))
+
+            if not album.covers:
+                continue
+
+            for cover in album.covers:
+                print '\t\t',cover.file_url
 
         # Tracks
         print 'tracks (%s)' % result.tracks_total

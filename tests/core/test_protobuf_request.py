@@ -1,7 +1,7 @@
-from spotify.core.protobuf_request import ProtobufRequest
+from spotify.mercury.request import MercuryRequest
 from spotify.objects import Album
 
-TEST_REQUEST = ProtobufRequest('sp/hm_b64', [
+TEST_REQUEST = MercuryRequest('sp/hm_b64', [
     {
         'method': 'GET',
         'uri': 'hm://metadata/track/9adbdff7a4f14cd89a1a8a566a92c366'

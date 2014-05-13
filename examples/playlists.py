@@ -14,6 +14,7 @@ class App(object):
         @self.sp.login(os.environ['USERNAME'], os.environ['PASSWORD'])
         def on_login():
             self.sp.user.playlists(callback=self.on_playlists)
+            self.sp.playlist('spotify:user:fuzeman:playlist:4AMR1hLgWrMbZkMneOqUw3', callback=self.on_playlist)
 
     def on_playlists(self, playlists):
         print "=" * 25
@@ -24,12 +25,10 @@ class App(object):
 
         print 'items:'
 
-        for item in playlists.items:
-            print '\t"%s"' % item.uri
+        for item in playlists.fetch():
+            print '\t"%s" (%s)' % (item.name, item.uri)
 
         print "=" * 25
-
-        self.sp.playlist('spotify:user:fuzeman:playlist:4AMR1hLgWrMbZkMneOqUw3', callback=self.on_playlist)
 
     def on_playlist(self, playlist):
         print playlist.name
@@ -41,8 +40,8 @@ class App(object):
 
         print 'items:'
 
-        for item in playlist.items:
-            print '\t"%s" - added_by: "%s"' % (item.uri, item.added_by)
+        for item in playlist.fetch():
+            print '\t"%s" (%s)' % (item.name, item.uri)
 
 
 if __name__ == '__main__':
