@@ -1,5 +1,4 @@
 from spotify.core.request import Request
-from spotify.mercury.cache import MercuryCache
 from spotify.objects import NAME_MAP
 from spotify.proto import mercury_pb2
 
@@ -9,12 +8,10 @@ import httplib
 import logging
 
 log = logging.getLogger(__name__)
-cache = MercuryCache()
 
 
 class MercuryRequest(Request):
-    def __init__(self, sp, name, requests, schema_response, header=None,
-                 defaults=None):
+    def __init__(self, sp, name, requests, schema, header=None, defaults=None):
         """
         :type sp: spotify.client.Spotify
         :type name: str
@@ -27,11 +24,12 @@ class MercuryRequest(Request):
         super(MercuryRequest, self).__init__(sp, name, None)
 
         self.requests = requests if type(requests) is list else [requests]
-        self.schema_response = schema_response
+
+        self.schema = schema
         self.defaults = defaults
 
         self.request = None
-        self.payload = None
+        self.request_payload = None
 
         self.response = OrderedDict()
 
@@ -41,45 +39,37 @@ class MercuryRequest(Request):
         payload = mercury_pb2.MercuryMultiGetRequest()
 
         for request in requests:
-            request = self.prepare_request(request)
+            request = self.parse_request(request)
 
-            response = cache.get(request.uri)
-
-            if response:
-                # Found valid response in cache
-                self.response[request.uri] = response
+            if self.cached_response(request):
                 continue
 
+            # Update payload
             payload.request.extend([request])
 
+        # Ensure we have at least one request
         if not len(payload.request):
             return
 
+        log.debug('prepared %s requests', len(payload.request))
+
         if len(payload.request) == 1:
+            # Single request
             self.request = payload.request[0]
             return
 
+        # Multi request
         if header is None:
+            # Header required
             raise ValueError('A header is required to send multiple requests')
 
         header['content_type'] = 'vnd.spotify/mercury-mget-request'
 
-        self.request = self.prepare_request(header)
-        self.payload = payload
-
-    def prepare_request(self, request):
-        m_request = mercury_pb2.MercuryRequest()
-
-        # Fill MercuryRequest
-        m_request.uri = request.get('uri', '')
-        m_request.content_type = request.get('content_type', '')
-        m_request.method = request.get('method', '')
-        m_request.source = request.get('source', '')
-
-        return m_request
+        # Prepare header
+        self.request = self.parse_request(header)
+        self.request_payload = payload
 
     def process(self, data):
-        log.debug('process data: %s', repr(data))
         result = data['result']
 
         header = mercury_pb2.MercuryRequest()
@@ -95,7 +85,7 @@ class MercuryRequest(Request):
 
             return
 
-        if self.payload and header.content_type != 'vnd.spotify/mercury-mget-reply':
+        if self.request_payload and header.content_type != 'vnd.spotify/mercury-mget-reply':
             self.emit('error', 'Server Error: Server didn\'t send a multi-GET reply for a multi-GET request!')
             return
 
@@ -107,61 +97,21 @@ class MercuryRequest(Request):
             response.ParseFromString(data)
 
             items = [
-                (item.content_type, self.parse_item(item.body, item.content_type))
+                (item.content_type, self.parse_protobuf(
+                    item.body, item.content_type
+                ))
                 if item.status_code == 200 else None
                 for item in response.reply
             ]
         else:
-            items = [
-                (header.content_type, self.parse_item(data, header.content_type))
-            ]
+            items = [(header.content_type, self.parse_protobuf(
+                data, header.content_type
+            ))]
 
         for content_type, internal in items:
-            uri = '/'.join(cache.key_hermes(content_type, internal))
-
-            self.response[uri] = cache.store(header, content_type, internal)
+            self.update_response(header, content_type, internal)
 
         self.respond()
-
-    def parse_item(self, data, content_type):
-        parser_cls = self.get_descriptor(content_type)
-
-        internal = parser_cls.__protobuf__()
-        internal.ParseFromString(data)
-
-        return internal
-
-    def respond(self):
-        if len(self.response) != len(self.requests):
-            return False
-
-        result = []
-
-        for uri, item in self.response.items():
-            cls = self.get_descriptor(item.content_type)
-
-            result.append(cls.from_protobuf(self.sp, item.internal, NAME_MAP, self.defaults))
-
-        log.debug('returning result: %s', result)
-
-        if len(self.requests) == 1:
-            self.emit('success', result[0] if result else None)
-        else:
-            self.emit('success', result)
-
-        return True
-
-    def get_descriptor(self, content_type):
-        parser_cls = self.schema_response
-
-        if type(parser_cls) is dict:
-            parser_cls = parser_cls.get(content_type)
-
-        if parser_cls is None:
-            self.emit('error', 'Unrecognized metadata type: "%s"' % content_type)
-            return None
-
-        return parser_cls
 
     def build(self, seq):
         if self.respond() or not self.request:
@@ -172,12 +122,41 @@ class MercuryRequest(Request):
             base64.b64encode(self.request.SerializeToString())
         ]
 
-        if self.payload:
-            self.args.append(base64.b64encode(self.payload.SerializeToString()))
+        if self.request_payload:
+            self.args.append(base64.b64encode(self.request_payload.SerializeToString()))
 
         return super(MercuryRequest, self).build(seq)
 
-    def get_number(self, method):
+    def respond(self):
+        # Incorrect response count, not finished yet
+        if len(self.response) != len(self.requests):
+            return False
+
+        result = []
+
+        # Build objects from protobuf responses
+        for uri, item in self.response.items():
+            if item is None:
+                return False
+
+            content_type, internal = item
+
+            # Get item descriptor
+            cls = self.find_descriptor(content_type)
+
+            # Build item from protobuf
+            result.append(cls.from_protobuf(self.sp, internal, NAME_MAP, self.defaults))
+
+        # Emit success event
+        if len(self.requests) == 1:
+            self.emit('success', result[0])
+        else:
+            self.emit('success', result)
+
+        return True
+
+    @staticmethod
+    def get_number(method):
         if method == 'SUB':
             return 1
 
@@ -185,3 +164,51 @@ class MercuryRequest(Request):
             return 2
 
         return 0
+
+    #
+    # Parsing
+    #
+
+    def parse_protobuf(self, data, content_type):
+        parser_cls = self.find_descriptor(content_type)
+
+        internal = parser_cls.__protobuf__()
+        internal.ParseFromString(data)
+
+        return internal
+
+    def find_descriptor(self, content_type):
+        cls = self.schema
+
+        # Multi-response schema
+        if type(cls) is dict:
+            cls = cls.get(content_type)
+
+        # Unable to find descriptor
+        if cls is None:
+            self.emit('error', 'Unrecognized content_type: "%s"' % content_type)
+            return None
+
+        return cls
+
+    @staticmethod
+    def parse_request(request):
+        m_request = mercury_pb2.MercuryRequest()
+
+        # Fill MercuryRequest
+        m_request.uri = request.get('uri', '')
+        m_request.content_type = request.get('content_type', '')
+        m_request.method = request.get('method', '')
+        m_request.source = request.get('source', '')
+
+        return m_request
+
+    #
+    # Response caching
+    #
+
+    def cached_response(self, request):
+        return False
+
+    def update_response(self, header, content_type, internal):
+        self.response[internal.gid] = (content_type, internal)

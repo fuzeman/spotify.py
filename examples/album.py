@@ -13,7 +13,9 @@ class App(object):
     def __init__(self):
         self.sp = Spotify()
 
+        self.track_uris = None
         self.tracks = None
+
         self.album = None
 
         self.request_num = 0
@@ -28,7 +30,13 @@ class App(object):
         self.album = album
 
         # Request track metadata
-        self.sp.metadata([tr.uri for tr in self.album.tracks], self.on_tracks)
+        self.track_uris = [tr.uri for tr in self.album.tracks]
+
+        self.sp.metadata([
+            self.track_uris[0],
+            self.track_uris[5],
+            self.track_uris[3]
+        ], self.on_tracks)
 
     def on_tracks(self, tracks):
         self.request_num += 1
@@ -37,16 +45,21 @@ class App(object):
         log.info('%s - %s', self.album.name, ', '.join([artist.name for artist in self.album.artists]))
 
         for track in self.tracks:
-            if not track.is_available():
-                track.find_alternative()
+            #if not track.is_available():
+            #    track.find_alternative()
 
             log.info('\t[%02d] (%s) %s', track.number, track.uri, track.name)
-            log.info('\t\tis_available: %s', track.is_available())
 
         if self.request_num >= 2:
             return
 
-        self.sp.metadata([tr.uri for tr in self.album.tracks], self.on_tracks)
+        self.sp.metadata([
+            self.track_uris[0],
+            self.track_uris[6],
+            self.track_uris[3],
+            self.track_uris[4],
+            self.track_uris[5]
+        ], self.on_tracks)
 
 
 if __name__ == '__main__':

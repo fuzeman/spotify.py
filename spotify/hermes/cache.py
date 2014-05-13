@@ -1,15 +1,16 @@
-import logging
-import time
 from spotify.core.helpers import convert
 from spotify.core.uri import Uri
+
+import logging
+import time
 
 log = logging.getLogger(__name__)
 
 
-class MercuryCache(object):
+class HermesCache(object):
     schema_types = {
-        'vnd.spotify/metadata-album': 'album',
-        'vnd.spotify/metadata-track': 'track'
+        'vnd.spotify/metadata-album': ('metadata', 'album'),
+        'vnd.spotify/metadata-track': ('metadata', 'track')
     }
 
     content_types = [
@@ -20,27 +21,26 @@ class MercuryCache(object):
     def __init__(self):
         self._store = {}
 
-    def key_content(self, content_type):
+    def get_type(self, content_type):
         key = self.schema_types.get(content_type)
 
         if key is None:
             log.debug('ignoring item with content_type: "%s"', content_type)
-            return None
+            return None, None
 
         return key
 
-    def key_hermes(self, content_type, internal):
-        content_key = self.key_content(content_type)
+    def from_object(self, content_type, internal):
+        group, type = self.get_type(content_type)
 
-        if content_key is None:
+        if group is None or type is None:
             return None, None
 
-        uri = Uri.from_gid(content_key, internal.gid)
+        uri = Uri.from_gid(type, internal.gid)
 
-        # TODO hermes specific code, look into this again later
-        return 'hm://metadata/%s' % uri.type, uri.to_id()
+        return 'hm://%s/%s' % (group, uri.type), uri.to_id()
 
-    def key(self, hm):
+    def from_uri(self, hm):
         x = hm.rindex('/')
 
         k_content = hm[:x]
@@ -53,29 +53,25 @@ class MercuryCache(object):
         return k_content, k_item
 
     def store(self, header, content_type, internal):
-        k_content, k_item = self.key_hermes(content_type, internal)
+        k_content, k_item = self.from_object(content_type, internal)
 
         if not k_content or not k_item:
             return None
 
-        log.debug('store - k_content: %s, k_item: %s', k_content, k_item)
-
         if self._store.get(k_content) is None:
             self._store[k_content] = {}
 
-        item = MercuryCacheItem.create(header, content_type, internal)
+        item = HermesCacheObject.create(header, content_type, internal)
 
         self._store[k_content][k_item] = item
 
         return item
 
-    def get(self, hm):
-        k_content, k_item = self.key(hm)
+    def get(self, uri):
+        k_content, k_item = self.from_uri(uri)
 
         if not k_content or not k_item:
             return False
-
-        log.debug('get - k_content: %s, k_item: %s', k_content, k_item)
 
         if self._store.get(k_content) is None:
             return None
@@ -85,6 +81,9 @@ class MercuryCache(object):
         if item is None:
             return None
 
+        log.debug('retrieved "%s" from cache (timestamp: %s, valid: %s)', uri,
+                  item.timestamp, item.is_valid())
+
         if not item.is_valid():
             del self._store[k_content][k_item]
             return None
@@ -92,7 +91,7 @@ class MercuryCache(object):
         return item
 
 
-class MercuryCacheItem(object):
+class HermesCacheObject(object):
     def __init__(self, ttl, version, policy, content_type, internal):
         self.ttl = ttl
         self.version = version
@@ -108,17 +107,6 @@ class MercuryCacheItem(object):
         elapsed = (time.time() - self.timestamp) * 1000
 
         return elapsed < self.ttl
-
-    def __repr__(self):
-        return '<MercuryCacheItem %s>' % (
-            ', '.join([
-                ('%s: %s' % (key, repr(getattr(self, key, None))))
-                for key in [
-                    'ttl', 'version', 'policy',
-                    'gid', 'internal'
-                ]
-            ])
-        )
 
     @classmethod
     def create(cls, header, content_type, internal):

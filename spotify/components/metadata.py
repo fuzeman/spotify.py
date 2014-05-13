@@ -1,7 +1,7 @@
 import logging
 
 from spotify.components.base import Component
-from spotify.mercury.request import MercuryRequest
+from spotify.hermes.request import HermesRequest
 from spotify.core.uri import Uri
 from spotify.objects import Album, Track, Artist, Playlist
 
@@ -36,7 +36,7 @@ class Metadata(Component):
             })
 
         # Build ProtoRequest
-        request = MercuryRequest(self.sp, 'sp/hm_b64', requests, {
+        request = HermesRequest(self.sp, requests, {
             'vnd.spotify/metadata-artist': Artist,
             'vnd.spotify/metadata-album': Album,
             'vnd.spotify/metadata-track': Track
@@ -50,7 +50,7 @@ class Metadata(Component):
     def playlist(self, uri, start=0, count=100, callback=None):
         parts = str(uri).split(':')
 
-        request = MercuryRequest(self.sp, 'sp/hm_b64', {
+        request = HermesRequest(self.sp, {
             'method': 'GET',
             'uri': 'hm://playlist/%s?from=%s&length=%s' % ('/'.join(parts[1:]), start, count)
         }, Playlist, defaults={
@@ -63,7 +63,7 @@ class Metadata(Component):
         if count > 100:
             raise ValueError("You may only request up to 100 playlists at once")
 
-        request = MercuryRequest(self.sp, 'sp/hm_b64', {
+        request = HermesRequest(self.sp, {
             'method': 'GET',
             'uri': 'hm://playlist/user/%s/rootlist?from=%s&length=%s' % (username, start, count)
         }, Playlist, defaults={
