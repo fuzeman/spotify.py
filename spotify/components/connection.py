@@ -55,11 +55,11 @@ class Connection(Component, Emitter):
         if not self.connected:
             return
 
+        self.connected = False
+
         if self.client:
             self.client.close()
             self.client = None
-
-        self.connected = False
 
     def on_open(self):
         log.debug('WebSocket "open" event')
@@ -101,9 +101,13 @@ class Connection(Component, Emitter):
         request.process(data)
 
     def on_close(self, code, reason=None):
-        # Ensure client has been disconnected
-        self.disconnect()
+        log.info('Spotify connection closed')
 
+        if not self.connected:
+            log.debug('Client requested disconnect, ignoring "close" event')
+            return
+
+        self.disconnect()
         self.emit('close', code=code, reason=reason)
 
     def send(self, name, *args):
