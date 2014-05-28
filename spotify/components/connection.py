@@ -104,7 +104,7 @@ class Connection(Component, Emitter):
         # Ensure client has been disconnected
         self.disconnect()
 
-        self.emit('close', code, reason)
+        self.emit('close', code=code, reason=reason)
 
     def send(self, name, *args):
         return self.build(name, *args)\
