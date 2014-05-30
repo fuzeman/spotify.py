@@ -45,7 +45,7 @@ class MercuryRequest(Request):
         for request in self.requests:
             request = self.parse_request(request)
 
-            if self.cached_response(request):
+            if header and self.cached_response(request):
                 continue
 
             # Update payload
@@ -153,7 +153,7 @@ class MercuryRequest(Request):
 
     def respond(self):
         # Incorrect response count, not finished yet
-        if len(self.response) != len(self.requests):
+        if len(self.response) < len(self.requests):
             return False
 
         result = []
