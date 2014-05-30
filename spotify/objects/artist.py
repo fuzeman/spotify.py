@@ -49,6 +49,15 @@ class Artist(Descriptor):
         }, types)
 
     @classmethod
+    def from_dict(cls, sp, data, types):
+        uri = Uri.from_uri(data.get('uri'))
+
+        return cls(sp, {
+            'name': data.get('name'),
+            'gid': uri.to_gid()
+        }, types)
+
+    @classmethod
     def get_portraits(cls, data):
         portrait = data.get('portrait', None)
         if portrait is None:

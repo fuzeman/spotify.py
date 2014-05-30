@@ -77,6 +77,30 @@ class Album(Descriptor):
         }, types)
 
     @classmethod
+    def from_dict(cls, sp, data, types):
+        uri = Uri.from_uri(data.get('uri'))
+
+        image_uri = data.get('imageUri')
+        file_id = image_uri[image_uri.rfind('/') + 1:]
+
+        return cls(sp, {
+            'name': data.get('name'),
+            'gid': uri.to_gid(),
+            'artist': [
+                {
+                    'uri': data.get('artistUri'),
+                    'name': data.get('artistName')
+                }
+            ],
+            'cover': [
+                {
+                    'file_id': file_id,
+                    'size': 0
+                }
+            ]
+        }, types)
+
+    @classmethod
     def get_type(cls, value):
         if value == 'album':
             return 1L
