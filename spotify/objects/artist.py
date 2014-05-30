@@ -36,7 +36,7 @@ class Artist(Descriptor):
     portrait_group = PropertyProxy('portrait_group')
 
     @classmethod
-    def from_dict(cls, sp, data, types):
+    def from_node_dict(cls, sp, data, types):
         uri = Uri.from_id('artist', data.get('id'))
 
         return cls(sp, {
@@ -62,18 +62,21 @@ class Artist(Descriptor):
 
         return [
             {
+                '$source': 'node',
                 'file_id': portrait.get('id'),
                 'size': 0,
                 'width': width,
                 'height': height
             },
             {
+                '$source': 'node',
                 'file_id': portrait.get('small'),
                 'size': 1,
                 'width': math.ceil(width * 0.32),
                 'height': math.ceil(height * 0.32)
             },
             {
+                '$source': 'node',
                 'file_id': portrait.get('large'),
                 'size': 2,
                 'width': math.ceil(width * 3.2),

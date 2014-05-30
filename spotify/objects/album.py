@@ -56,7 +56,7 @@ class Album(Descriptor):
                 yield track
 
     @classmethod
-    def from_dict(cls, sp, data, types):
+    def from_node_dict(cls, sp, data, types):
         uri = Uri.from_id('album', data.get('id'))
 
         return cls(sp, {
@@ -64,6 +64,7 @@ class Album(Descriptor):
             'name': data.get('name'),
             'artist': [
                 {
+                    '$source': 'node',
                     'id': data.get('artist-id'),
                     'name': data.get('artist-name')
                 }
@@ -95,14 +96,17 @@ class Album(Descriptor):
 
         return [
             {
+                '$source': 'node',
                 'file_id': data.get('cover'),
                 'size': 0
             },
             {
+                '$source': 'node',
                 'file_id': data.get('cover-small'),
                 'size': 1
             },
             {
+                '$source': 'node',
                 'file_id': data.get('cover-large'),
                 'size': 2
             }
