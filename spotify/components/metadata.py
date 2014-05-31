@@ -75,6 +75,9 @@ class Metadata(Component):
     def collection(self, username, source, params=None, callback=None):
         query = urllib.urlencode(params or {})
 
+        if query:
+            query = '?' + query
+
         request = HermesRequest(self.sp, {
             'method': 'GET',
             'uri': 'hm://collection-web/v1/%s/%s%s' % (username, source, query)

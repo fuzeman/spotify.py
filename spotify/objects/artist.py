@@ -52,10 +52,23 @@ class Artist(Descriptor):
     def from_dict(cls, sp, data, types):
         uri = Uri.from_uri(data.get('uri'))
 
-        return cls(sp, {
+        internal = {
             'name': data.get('name'),
             'gid': uri.to_gid()
-        }, types)
+        }
+
+        # Portrait
+        image_uri = data.get('imageUri')
+
+        if image_uri:
+            internal['portrait'] = [
+                {
+                    'file_id': image_uri[image_uri.rfind('/') + 1:],
+                    'size': 0
+                }
+            ]
+
+        return cls(sp, internal, types)
 
     @classmethod
     def get_portraits(cls, data):
