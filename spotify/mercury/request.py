@@ -35,6 +35,7 @@ class MercuryRequest(Request):
         self.multi = None
 
         self.response = OrderedDict()
+        self.response_type = 'Protobuf'
 
         self.prepared_requests = []
         self.prepare(header)
@@ -115,6 +116,7 @@ class MercuryRequest(Request):
                 for item in response.reply
             ]
         elif content_type and content_type[0].endswith('+json'):
+            self.response_type = 'MercuryJSON'
             self.multi = True
 
             data = json.loads(data)

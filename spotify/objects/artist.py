@@ -1,4 +1,4 @@
-from spotify.core.helpers import convert
+from spotify.core.helpers import convert, etree_convert
 from spotify.core.uri import Uri
 from spotify.objects.base import Descriptor, PropertyProxy
 from spotify.proto import metadata_pb2
@@ -8,7 +8,6 @@ import math
 
 class Artist(Descriptor):
     __protobuf__ = metadata_pb2.Artist
-    __node__ = 'artist'
 
     gid = PropertyProxy
     uri = PropertyProxy('gid', func=lambda gid: Uri.from_gid('artist', gid))
@@ -35,21 +34,14 @@ class Artist(Descriptor):
     is_portrait_album_cover = PropertyProxy('is_portrait_album_cover')
     portrait_group = PropertyProxy('portrait_group')
 
-    @classmethod
-    def from_node_dict(cls, sp, data, types):
-        uri = Uri.from_id('artist', data.get('id'))
+    @staticmethod
+    def __parsers__():
+        return [MercuryJSON, XML]
 
-        return cls(sp, {
-            'gid': uri.to_gid(),
-            'uri': uri,
-            'name': data.get('name'),
-            'portrait': cls.get_portraits(data),
-            'popularity': float(data.get('popularity')) if data.get('popularity') else None,
-            'restriction': data.get('restrictions')
-        }, types)
 
+class MercuryJSON(Artist):
     @classmethod
-    def from_dict(cls, sp, data, types):
+    def parse(cls, sp, data, parser):
         uri = Uri.from_uri(data.get('uri'))
 
         internal = {
@@ -68,7 +60,27 @@ class Artist(Descriptor):
                 }
             ]
 
-        return cls(sp, internal, types)
+        return Artist(sp, internal, parser.MercuryJSON, parser)
+
+
+class XML(Artist):
+    __tag__ = 'artist'
+
+    @classmethod
+    def parse(cls, sp, data, parser):
+        if type(data) is not dict:
+            data = etree_convert(data)
+
+        uri = Uri.from_id('artist', data.get('id'))
+
+        return Artist(sp, {
+            'gid': uri.to_gid(),
+            'uri': uri,
+            'name': data.get('name'),
+            'portrait': cls.get_portraits(data),
+            'popularity': float(data.get('popularity')) if data.get('popularity') else None,
+            'restriction': data.get('restrictions')
+        }, parser.XML, parser)
 
     @classmethod
     def get_portraits(cls, data):

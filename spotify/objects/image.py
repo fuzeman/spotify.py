@@ -1,5 +1,5 @@
 from spotify.core import RESOURCE_HOST
-from spotify.core.helpers import convert
+from spotify.core.helpers import convert, etree_convert
 from spotify.core.uri import Uri
 from spotify.objects.base import Descriptor, PropertyProxy
 from spotify.proto import metadata_pb2
@@ -22,6 +22,10 @@ class Image(Descriptor):
     width = PropertyProxy
     height = PropertyProxy
 
+    @staticmethod
+    def __parsers__():
+        return [XML]
+
     @property
     def file_url(self):
         if not self.file_uri or type(self.file_uri) is not Uri:
@@ -34,19 +38,24 @@ class Image(Descriptor):
         )
 
     @classmethod
-    def from_node_dict(cls, sp, data, types):
-        return cls(sp, {
+    def from_id(cls, id, size=3):
+        return cls(None, {
+            'file_id': Uri.from_id('image', id).to_gid(size=40),
+            'size': 3
+        })
+
+
+class XML(Image):
+    @classmethod
+    def parse(cls, sp, data, parser):
+        if type(data) is not dict:
+            data = etree_convert(data)
+
+        return Image(sp, {
             'file_id': Uri.from_id('image', data.get('file_id')).to_gid(size=40),
 
             'size': convert(data.get('size'), long),
 
             'width': convert(data.get('width'), long),
             'height': convert(data.get('height'), long)
-        }, types)
-
-    @classmethod
-    def from_id(cls, id, size=3):
-        return cls(None, {
-            'file_id': Uri.from_id('image', id).to_gid(size=40),
-            'size': 3
-        })
+        }, parser)
