@@ -51,7 +51,7 @@ class Playlist(Descriptor):
 
     @staticmethod
     def __parsers__():
-        return [XML]
+        return [XML, Tunigo]
 
     def list(self, group=None, flat=False):
         if group:
@@ -170,12 +170,29 @@ class XML(Playlist):
         if type(data) is not dict:
             data = etree_convert(data)
 
-        uri = Uri.from_uri(data.get('uri'))
-
-        return cls(sp, {
-            'uri': uri,
+        return Playlist(sp, {
+            'uri': Uri.from_uri(data.get('uri')),
             'attributes': {
                 'name': data.get('name')
             },
             'image': data.get('image')
         }, parser.XML, parser)
+
+
+class Tunigo(Playlist):
+    __tag__ = 'playlist'
+
+    @classmethod
+    def parse(cls, sp, data, parser):
+        image_uri = None
+
+        if data.get('image'):
+            image_uri = 'spotify:image:' + data.get('image')
+
+        return Playlist(sp, {
+            'uri': Uri.from_uri(data.get('uri')),
+            'attributes': {
+                'name': data.get('title')
+            },
+            'image': image_uri
+        }, parser.Tunigo, parser)
