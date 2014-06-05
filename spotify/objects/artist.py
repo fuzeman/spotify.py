@@ -36,31 +36,21 @@ class Artist(Descriptor):
 
     @staticmethod
     def __parsers__():
-        return [MercuryJSON, XML]
+        return [MercuryJSON, XML, Tunigo]
 
 
 class MercuryJSON(Artist):
     @classmethod
     def parse(cls, sp, data, parser):
-        uri = Uri.from_uri(data.get('uri'))
-
-        internal = {
+        return Artist(sp, {
             'name': data.get('name'),
-            'gid': uri.to_gid()
-        }
-
-        # Portrait
-        image_uri = data.get('imageUri')
-
-        if image_uri:
-            internal['portrait'] = [
+            'gid': Uri.from_uri(data.get('uri')).to_gid(),
+            'portrait': [
                 {
-                    'file_id': image_uri[image_uri.rfind('/') + 1:],
-                    'size': 0
+                    'imageUri': data.get('imageUri')
                 }
             ]
-
-        return Artist(sp, internal, parser.MercuryJSON, parser)
+        }, parser.MercuryJSON, parser)
 
 
 class XML(Artist):
@@ -117,3 +107,13 @@ class XML(Artist):
                 'height': math.ceil(height * 3.2)
             }
         ]
+
+
+class Tunigo(Artist):
+    # TODO __tag__
+
+    @classmethod
+    def parse(cls, sp, data, parser):
+        return Artist(sp, {
+            'name': data.get('artistName')
+        }, parser.Tunigo, parser)

@@ -15,8 +15,8 @@ class App(object):
         #def on_login():
         self.sp.explore.new_releases(callback=self.on_new_releases)
 
-    def on_new_releases(self, albums):
-        print albums
+    def on_new_releases(self, result):
+        print result.items
 
 
 if __name__ == '__main__':

@@ -62,31 +62,21 @@ class Album(Descriptor):
 class MercuryJSON(Album):
     @classmethod
     def parse(cls, sp, data, parser):
-        uri = Uri.from_uri(data.get('uri'))
-
-        internal = {
+        return Album(sp, {
             'name': data.get('name'),
-            'gid': uri.to_gid(),
+            'gid': Uri.from_uri(data.get('uri')).to_gid(),
             'artist': [
                 {
                     'uri': data.get('artistUri'),
                     'name': data.get('artistName')
                 }
-            ]
-        }
-
-        # Cover
-        image_uri = data.get('imageUri')
-
-        if image_uri:
-            internal['cover'] = [
+            ],
+            'cover': [
                 {
-                    'file_id': image_uri[image_uri.rfind('/') + 1:],
-                    'size': 0
+                    'imageUri': data.get('imageUri'),
                 }
             ]
-
-        return Album(sp, internal, parser)
+        }, parser.MercuryJSON, parser)
 
 
 class XML(Album):
@@ -97,10 +87,8 @@ class XML(Album):
         if type(data) is not dict:
             data = etree_convert(data)
 
-        uri = Uri.from_id('album', data.get('id'))
-
         return Album(sp, {
-            'gid': uri.to_gid(),
+            'gid': Uri.from_id('album', data.get('id')).to_gid(),
             'name': data.get('name'),
             'artist': [
                 {
@@ -158,4 +146,17 @@ class Tunigo(Album):
 
     @classmethod
     def parse(cls, sp, data, parser):
-        pass
+        return Album(sp, {
+            'gid': Uri.from_uri(data.get('uri')).to_gid(),
+            'name': data.get('albumName'),
+            'artist': [
+                {
+                    'artistName': data.get('artistName')
+                }
+            ],
+            'cover': [
+                {
+                    'image': data.get('image')
+                }
+            ],
+        }, parser.Tunigo, parser)

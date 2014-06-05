@@ -24,7 +24,7 @@ class Image(Descriptor):
 
     @staticmethod
     def __parsers__():
-        return [XML]
+        return [MercuryJSON, XML, Tunigo]
 
     @property
     def file_url(self):
@@ -45,6 +45,22 @@ class Image(Descriptor):
         })
 
 
+class MercuryJSON(Image):
+    @classmethod
+    def parse(cls, sp, data, parser):
+        image_uri = data.get('imageUri')
+
+        if not image_uri:
+            return None
+
+        image_id = image_uri[image_uri.rfind('/') + 1:]
+
+        return Image(sp, {
+            'file_id': Uri.from_id('image', image_id).to_gid(size=40),
+            'size': 0
+        }, parser.MercuryJSON, parser)
+
+
 class XML(Image):
     @classmethod
     def parse(cls, sp, data, parser):
@@ -53,9 +69,26 @@ class XML(Image):
 
         return Image(sp, {
             'file_id': Uri.from_id('image', data.get('file_id')).to_gid(size=40),
-
             'size': convert(data.get('size'), long),
 
             'width': convert(data.get('width'), long),
             'height': convert(data.get('height'), long)
-        }, parser)
+        }, parser.XML, parser)
+
+
+class Tunigo(Image):
+    # TODO __tag__
+
+    @classmethod
+    def parse(cls, sp, data, parser):
+        image = data.get('image')
+
+        if not image:
+            return None
+
+        image_id = image[image.rfind('/') + 1:]
+
+        return Image(sp, {
+            'file_id': Uri.from_id('image', image_id).to_gid(size=40),
+            'size': 0
+        }, parser.Tunigo, parser)

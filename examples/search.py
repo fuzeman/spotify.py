@@ -38,7 +38,7 @@ class App(object):
                 continue
 
             for cover in album.covers:
-                print '\t\t',cover.file_url
+                print '\t\t', cover.file_url
 
         # Tracks
         print 'tracks (%s)' % result.tracks_total

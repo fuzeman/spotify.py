@@ -91,6 +91,7 @@ def class_parsers(cls, result=None, flat=False):
 
 
 class Parser(object):
+    Protobuf = 'Protobuf'
     MercuryJSON = 'MercuryJSON'
     XML = 'XML'
     Tunigo = 'Tunigo'
@@ -99,34 +100,53 @@ class Parser(object):
     TYPES = discover()
 
     @classmethod
-    def get(cls, data_type, tag):
-        if data_type not in cls.TYPES:
-            raise ValueError('Unknown data type "%s"' % data_type)
+    def get(cls, source, tag):
+        if source not in cls.TYPES:
+            raise ValueError('Unknown data type "%s"' % source)
 
         types = cls.TYPES
 
         if tag in cls.NAMES:
-            types = class_parsers(cls.NAMES[tag], flat=True)
-            return types.get(data_type)
+            return cls.from_descriptor(source, cls.NAMES[tag])
 
         # Look for tag in type map
-        if tag in types[data_type]:
-            return types[data_type][tag]
+        if tag in types[source]:
+            return types[source][tag]
 
-        log.warn('Unknown tag "%s" for data type "%s"', tag, data_type)
+        log.warn('Unknown tag "%s" for data type "%s"', tag, source)
         return None
 
     @classmethod
-    def parse(cls, sp, data_type, tag, data):
+    def from_descriptor(cls, source, descriptor):
+        types = class_parsers(descriptor, flat=True)
+
+        if source not in types:
+            log.warn('Unable to find "%s" parser for %s', source, descriptor)
+            return None
+
+        return types[source]
+
+    @classmethod
+    def parse(cls, sp, source, tag, data):
         #log.debug('parse - data_type: %s, tag: %s, data: %s', repr(data_type), repr(tag), repr(data))
-        parser = cls.get(data_type, tag)
+        descriptor = cls.get(source, tag)
+
+        return cls.construct(sp, source, descriptor, data)
+
+    @classmethod
+    def construct(cls, sp, source, descriptor, data):
+        if not descriptor:
+            log.warn('Invalid descriptor provided')
+            return None
+
+        parser = cls.from_descriptor(source, descriptor)
 
         if hasattr(parser, 'parse'):
             return parser.parse(sp, data, cls)
 
         log.warn('Using an old-style parser %s', parser)
 
-        if data_type == 'XML':
+        if source == 'XML':
             if type(data) is dict:
                 return parser.from_node_dict(sp, data, cls)
 
