@@ -13,15 +13,23 @@ class App(object):
     def run(self):
         @self.sp.login(os.environ['USERNAME'], os.environ['PASSWORD'])
         def on_login():
-            self.sp.user.collection('albumscoverlist', callback=self.on_collection)
+            self.sp.user.collection('albumscoverlist', callback=self.on_album_collection)
+            self.sp.user.collection('artistscoverlist', callback=self.on_artist_collection)
 
-    def on_collection(self, albums):
+    def on_album_collection(self, albums):
         for album in albums:
-            print album.name
-            print album.uri
-            print album.artists[0].name
-            print album.artists[0].uri
-            print album.covers[0].file_url
+            print '[%s] "%s" - %s - %s' % (
+                album.uri, album.name,
+                ', '.join([ar.name for ar in album.artists]),
+                [c.file_url for c in album.covers if c]
+            )
+
+    def on_artist_collection(self, artists):
+        for artist in artists:
+            print '[%s] "%s" - %s' % (
+                artist.uri, artist.name,
+                [p.file_url for p in artist.portraits if p]
+            )
 
 
 if __name__ == '__main__':
