@@ -23,7 +23,7 @@ class App(object):
 
     def on_top_playlists(self, result):
         for playlist in result.items:
-            print '[%s] "%s"' % (playlist.uri, playlist.name)
+            print '[%s] "%s" - %s' % (playlist.uri, playlist.name, playlist.image.file_url)
 
     def on_new_releases(self, result):
         for album in result.items:
