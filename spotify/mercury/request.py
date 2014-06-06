@@ -179,6 +179,7 @@ class MercuryRequest(Request):
 
             # Build object from data
             item = Parser.construct(self.sp, self.response_type, descriptor, data)
+            item.dict_update(self.defaults)
 
             result.append(item)
 
