@@ -50,6 +50,9 @@ class Metadata(Component):
         return self.request_wrapper(request, callback)
 
     def playlist(self, uri, start=0, count=100, callback=None):
+        if type(uri) is Uri:
+            uri = str(uri)
+
         parts = [self.uri_quote(p) for p in uri.split(':')]
 
         request = HermesRequest(self.sp, {
