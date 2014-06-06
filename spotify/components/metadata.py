@@ -13,6 +13,8 @@ class Metadata(Component):
     def get(self, uris, callback=None):
         log.debug('metadata(%s)', uris)
 
+        multi = type(uris) is list
+
         if type(uris) is not list:
             uris = [uris]
 
@@ -43,7 +45,7 @@ class Metadata(Component):
         }, {
             'method': 'GET',
             'uri': 'hm://metadata/%ss' % h_type
-        })
+        }, multi=multi)
 
         return self.request_wrapper(request, callback)
 
@@ -68,7 +70,7 @@ class Metadata(Component):
             'uri': 'hm://playlist/user/%s/rootlist?from=%s&length=%s' % (username, start, count)
         }, Playlist, defaults={
             'uri': Uri.from_uri('spotify:user:%s:rootlist' % username)
-        })
+        }, multi=True)
 
         return self.request_wrapper(request, callback)
 
@@ -84,6 +86,6 @@ class Metadata(Component):
         }, {
             'album': Album,
             'artist': Artist
-        })
+        }, multi=True)
 
         return self.request_wrapper(request, callback)
