@@ -177,7 +177,7 @@ class MercuryRequest(Request):
 
     def respond(self):
         # Check if all objects have been received
-        if not self.response or not all(self.response):
+        if not self.response or not all(self.response.values()):
             return False
 
         items = list(self.get_items()) or self.response.values()
@@ -185,7 +185,12 @@ class MercuryRequest(Request):
         result = []
 
         # Build objects from protobuf responses
-        for content_type, data in items:
+        for item in items:
+            if item is None:
+                continue
+
+            content_type, data = item
+
             # Get item descriptor
             descriptor = self.find_descriptor(content_type)
 
