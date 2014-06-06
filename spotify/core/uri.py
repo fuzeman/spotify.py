@@ -61,7 +61,7 @@ class Uri(object):
     def from_gid(cls, type, gid):
         if gid is None:
             return None
-        
+
         id = binascii.hexlify(gid).rjust(32, '0')
 
         return cls.from_id(type, id)
