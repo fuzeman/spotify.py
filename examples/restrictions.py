@@ -20,7 +20,12 @@ class App(object):
         # "Robot Rock / Oh Yeah" - "Daft Punk"
         'spotify:track:5EaZLVO6pSEWIyUDsHWiSU',
         'spotify:track:0q9zz6nP5izcUnfYndfVX6',
-        'spotify:track:5eS6pTvDNOvh2kyxeZtK3r'
+        'spotify:track:5eS6pTvDNOvh2kyxeZtK3r',
+
+        # "Room 24" - "Volbeat"
+        'spotify:track:4OugXGf671yxhci3eqVGJf',
+        'spotify:track:0B3ALwX9rlqegfSLoFnx4E',
+        'spotify:track:5DRP9X5EivS5XklFqqu9Gh'
     ]
 
     def __init__(self):
