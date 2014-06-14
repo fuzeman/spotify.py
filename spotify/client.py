@@ -22,9 +22,10 @@ class Spotify(Component, Emitter):
         self.components = ComponentManager(self)
 
         # Session data
+        self.authenticated = False
         self.config = None
 
-        self.user_info = None
+        self.user_info = {}
         self.user = None
 
     # User
@@ -50,7 +51,18 @@ class Spotify(Component, Emitter):
         return self.on('login', callback)
 
     def on_authenticated(self, config):
+        self.authenticated = True
         self.config = config
+
+        self.connect()
+
+    def connect(self):
+        if not self.authenticated:
+            log.info('Authenticating...')
+            self.components.authentication.connect()
+            return
+
+        log.info('Connecting...')
         self._resolve_ap()
 
     # Resolve AP
@@ -145,6 +157,15 @@ class Spotify(Component, Emitter):
     def playlists(self, username, start=0, count=100, callback=None):
         return self.components.metadata.playlists(username, start, count, callback)
 
+    def collection(self, username, source, params=None, callback=None):
+        return self.components.metadata.collection(username, source, params, callback)
+
     # Search
     def search(self, query, query_type='all', start=0, count=50, callback=None):
         return self.components.search.search(query, query_type, start, count, callback)
+
+    # Explore
+
+    @property
+    def explore(self):
+        return self.components.explore

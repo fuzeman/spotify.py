@@ -19,6 +19,18 @@ class Connection(Component, Emitter):
 
         self.client = None
         self.connected = False
+        self.disconnecting = False
+
+        self.heartbeat_thread = None
+
+        self.seq = 0
+        self.requests = {}
+
+        self.send_lock = Lock()
+
+    def reset(self):
+        self.connected = False
+        self.disconnecting = False
 
         self.heartbeat_thread = None
 
@@ -31,8 +43,7 @@ class Connection(Component, Emitter):
         if self.client:
             return
 
-        self.seq = 0
-        self.requests = {}
+        self.reset()
 
         self.client = Client(self, url)\
             .on('open', self.on_open)\
@@ -40,21 +51,26 @@ class Connection(Component, Emitter):
             .on('close', self.on_close)
 
         log.info('Connecting to "%s"' % url)
-
         self.client.connect()
 
     def disconnect(self):
+        if not self.connected:
+            return
+
+        self.disconnecting = True
+        self.connected = False
+
         if self.client:
             self.client.close()
             self.client = None
 
-        self.connected = False
-
     def on_open(self):
         log.debug('WebSocket "open" event')
 
-        if not self.connected:
-            self.send_connect()
+        if self.connected:
+            return
+
+        self.send_connect()
 
     def on_message(self, message):
         if message is None:
@@ -88,10 +104,14 @@ class Connection(Component, Emitter):
         request.process(data)
 
     def on_close(self, code, reason=None):
-        log.debug('WebSocket "close" event')
+        log.info('Spotify connection closed')
 
-        if self.connected:
-            self.disconnect()
+        if self.disconnecting:
+            log.debug('Client requested disconnect, ignoring "close" event')
+            return
+
+        self.disconnect()
+        self.emit('close', code=code, reason=reason)
 
     def send(self, name, *args):
         return self.build(name, *args)\
@@ -117,6 +137,9 @@ class Connection(Component, Emitter):
         return request
 
     def send_message(self, message):
+        if self.client is None:
+            raise Exception('Unable to send message, socket has been closed')
+
         encoded = json.dumps(message, separators=(',', ':'))
         log.debug('send encoded: %s' % repr(encoded))
 
@@ -144,6 +167,8 @@ class Connection(Component, Emitter):
             time.sleep(self.heartbeat_interval)
 
             self.send_heartbeat()
+
+        log.debug('heartbeat thread finished (disconnected)')
 
     def on_connect(self, message):
         log.debug('SpotifyConnection "connect" event: %s', message)
