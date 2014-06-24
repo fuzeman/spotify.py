@@ -28,11 +28,6 @@ class Authentication(Component, Emitter):
         self.credentials = {'type': 'anonymous'}
         self.landing_params = None
 
-        # Broadcast errors upstream
-        @self.on('error')
-        def on_error(*args, **kwargs):
-            self.sp.emit('error', *args, **kwargs)
-
     def login(self, username=None, password=None):
         if username and password:
             self.credentials = {
