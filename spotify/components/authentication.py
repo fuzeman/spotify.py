@@ -10,6 +10,10 @@ RE_LANDING = re.compile(
     re.IGNORECASE | re.DOTALL
 )
 
+AUTH_ERRORS = {
+    'invalid_credentials': 'Invalid account credentials provided, check your username/password'
+}
+
 log = logging.getLogger(__name__)
 
 
@@ -119,12 +123,13 @@ class Authentication(Component, Emitter):
         data = res.json()
 
         if data['status'] == 'ERROR':
-            msg = data.get('error', 'unknown')
+            error = data.get('error', 'unknown')
+            message = data.get('message')
 
-            if data.get('message'):
-                msg += ': ' + data['message']
+            if not message:
+                message = AUTH_ERRORS.get(error, 'Unknown')
 
-            self.emit('error', msg)
+            self.emit('error', '%s (%s)' % (message, error))
             return
 
         self.emit('authenticated', data['config'])
