@@ -15,7 +15,7 @@ setup(
     author='Dean Gardiner',
     author_email='me@dgardiner.net',
 
-    description='',
+    description='Python library to communicate with the Spotify WebSocket API',
     packages=find_packages(exclude=['tests', 'tests.*']),
     platforms='any',
 
