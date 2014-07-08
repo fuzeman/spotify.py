@@ -1,3 +1,6 @@
 *.pyc
 
 /virtualenv
+
+/spotify.py.egg-info
+/dist
