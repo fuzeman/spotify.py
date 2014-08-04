@@ -112,7 +112,10 @@ class MercuryRequest(Request):
             items = self.reply_mercury(header.content_type, data)
 
         for x, (content_type, internal) in enumerate(items):
-            self.update_response(x, header, content_type, internal)
+            uri = self.update_response(
+                self.prepared_requests[x], header,
+                content_type, internal
+            )
 
         self.respond()
 
@@ -264,8 +267,9 @@ class MercuryRequest(Request):
     def cached_response(self, request):
         return False
 
-    def update_response(self, index, header, content_type, internal):
-        self.response[internal.gid] = (content_type, internal)
+    def update_response(self, request, header, content_type, internal):
+        self.response[request.uri] = (content_type, internal)
+        return request.uri
 
     def __repr__(self):
         return "<%s uris: %s>" % (
