@@ -35,6 +35,8 @@ class HermesRequest(MercuryRequest):
             uri = request.uri
         elif type(internal) is dict:
             uri = internal.get('uri')
+        elif len(self.prepared_requests) == 1:
+            uri = header.uri
         else:
             uri = cache.get_object_uri(content_type, internal)
 
