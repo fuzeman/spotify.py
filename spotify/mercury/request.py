@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 
 
 class MercuryRequest(Request):
-    def __init__(self, sp, name, requests, schema, header=None, defaults=None, multi=None):
+    def __init__(self, sp, name, requests, schema, header=None, defaults=None, container=None, multi=None):
         """
         :type sp: spotify.client.Spotify
         :type name: str
@@ -34,6 +34,7 @@ class MercuryRequest(Request):
 
         self.request = None
         self.request_payload = None
+        self.container = container
         self.multi = multi
 
         self.response = OrderedDict()
@@ -114,8 +115,13 @@ class MercuryRequest(Request):
         uris = []
 
         for x, (content_type, internal) in enumerate(items):
+            request = None
+
+            if self.container == 'objects' and x < len(self.prepared_requests):
+                request = self.prepared_requests[x]
+
             uri = self.update_response(
-                self.prepared_requests[x], header,
+                request, header,
                 content_type, internal
             )
 

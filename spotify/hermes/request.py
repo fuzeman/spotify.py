@@ -6,11 +6,12 @@ cache = HermesCache()
 
 
 class HermesRequest(MercuryRequest):
-    def __init__(self, sp, requests, schema, header=None, defaults=None, multi=None):
+    def __init__(self, sp, requests, schema, header=None, defaults=None, container=None, multi=None):
         super(HermesRequest, self).__init__(
             sp, 'sp/hm_b64',
             requests, schema,
-            header, defaults, multi
+            header, defaults,
+            container, multi
         )
 
     def cached_response(self, request):
