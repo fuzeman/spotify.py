@@ -1,3 +1,4 @@
+from spotify.core.helpers import repr_trim
 from spotify.core.request import Request
 from spotify.core.uri import Uri
 from spotify.objects import Parser
@@ -265,3 +266,12 @@ class MercuryRequest(Request):
 
     def update_response(self, index, header, content_type, internal):
         self.response[internal.gid] = (content_type, internal)
+
+    def __repr__(self):
+        return "<%s uris: %s>" % (
+            self.__class__.__name__,
+            repr_trim([r.get('uri') for r in self.requests])
+        )
+
+    def __str__(self):
+        return self.__repr__()
