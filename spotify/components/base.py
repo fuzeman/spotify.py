@@ -38,13 +38,20 @@ class Component(object):
 
     @staticmethod
     def request_wrapper(request, callback=None):
-        def on_error(*args):
+        def on_error(func, *args):
             log.debug('Error %s returned for request: %s', repr(args), request)
 
-            if callback:
-                callback(None)
+            if func:
+                func(None)
 
-        return request.on('success', callback).on(
-            'error', on_error,
-            on_bound=lambda: request.send()
+        def on_bound(func):
+            # Bind to 'error' (so we know the real callback 'func')
+            request.on('error', lambda *args: on_error(func, *args))
+
+            # Send request
+            request.send()
+
+        return request.on(
+            'success', callback,
+            on_bound=on_bound
         )
