@@ -31,6 +31,10 @@ class App(object):
         print "=" * 25
 
     def on_playlist(self, playlist):
+        if playlist is None:
+            print "Unable to retrieve playlist"
+            return
+
         print playlist.name
         print "-" * 25
 
